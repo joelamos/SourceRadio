@@ -8,7 +8,7 @@ The selection of music that can be played using TFTunes is practically infinite.
 
 * TFTunes was developed to run on **Windows Vista** and above.
 * Must have Java 7 or above installed. Download [here](https://java.com/en/).
-* Must have Microsoft .NET Frame 4.5 or above installed. Download [here](https://www.microsoft.com/en-us/download/details.aspx?id=30653).
+* Must have Microsoft .NET Framework 4.5 or above installed. Download [here](https://www.microsoft.com/en-us/download/details.aspx?id=30653).
 * A **good, low-latency Internet connection**. A bad Internet connection may cause TFTunes to crash. It may also provide an unpleasant listening experience for teammates.
 * Ideally, **several gigabytes of storage** are available for caching the most-requested songs, although it is possible to run TFTunes without caching songs.
 
