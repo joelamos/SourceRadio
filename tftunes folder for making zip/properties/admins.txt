@@ -1,0 +1,4 @@
+your TF2 username goes here
+an admin's username goes here
+another admin
+etc
