@@ -6,7 +6,7 @@ The selection of music that can be played using TFTunes is practically infinite.
 
 ## System requirements
 
-* TFTFunes was developed to run on **Windows Vista** and above.
+* TFTunes was developed to run on **Windows Vista** and above.
 * Must have Java 7 or above installed. Download [here](https://java.com/en/).
 * Must have Microsoft .NET Frame 4.5 or above installed. Download [here](https://www.microsoft.com/en-us/download/details.aspx?id=30653).
 * A **good, low-latency Internet connection**. A bad Internet connection may cause TFTunes to crash. It may also provide an unpleasant listening experience for teammates.
@@ -14,21 +14,21 @@ The selection of music that can be played using TFTunes is practically infinite.
 
 ## Installation
 
- 1. Extract the contents of the ZIP file and give them a permanent home (e.g. `C:\Program Files (x86)`).
+ 1. Download the ZIP file that is linked to from the [TFTunes Steam group](http://steamcommunity.com/groups/tftunes). Extract the contents and give them a permanent home (e.g. `C:\Program Files (x86)`).
  1. Open `...\TFTunes\properties\admins.txt` and enter your ingame username on the first line. Whenever you change your username, you need to update this line. Adding the names of other players on subsequent lines makes them "admins". This grants them the ability to issue almost every command.
- 1. Make a shortcut of `TFTunes.jar` and place it somewhere acessible, as you will need to run it manually whenever you wish to use it.
+ 1. Make a shortcut of `TFTunes.jar` and place it somewhere acessible, as you will need to run it manually whenever you wish to use TFTunes.
  1. Open the Steam library, right-click Team Fortress 2, and click **Properties**. Under the **General** tab, hit **Set Launch Options**. Enter `-condebug` and click OK.
- 1. Download [**VB-Audio Virtual Cable**](http://vb-audio.pagesperso-orange.fr/Cable/index.htm). Extract the contents of the ZIP file and give them a permanent home as well. Open the VBCABLE folder and the run setup exe that corresponds to your system. Install the driver.
+ 1. Download [**VB-Audio Virtual Cable**](http://vb-audio.pagesperso-orange.fr/Cable/index.htm). Extract the contents of the ZIP file and give them a permanent home. Open the VBCABLE folder and the run setup exe that corresponds to your system. Install the driver.
  1. Navigate to the sound options from the Windows Control Panel. Click on the **Recording** tab, select **CABLE Output** (reboot computer if missing), and click **Set Default**. Next, right-click CABLE Output, and click **Properties**. Click the **Listen** tab and check **Listen to this device**. Apply all changes.
- 1. Download [**XAMPP**](https://www.apachefriends.org/index.html). The only recommended components for TFTunes are **Apache**, **MySQL**, and **phpMyAdmin**. Once you've finished installing XAMPP, navigate to `...\xampp\mysql\bin` and ensure the correct path to this directory is listed in `...\TFTunes\properties\properties.txt` under `mysql path`.
- 1. You must create a Google account if you do not already have one. Then visit [Google APIs](https://console.developers.google.com/apis/library) and click **Select a Project > Create a project**. Set the project's name to *tftunes*, avoid spam emails, and agree to the Terms of Service. Then click Create. Next click **YouTube Data API** and hit **Enable**. Now click **Credentials > Create credentials > API key > Server key**. Name it *tftunes*, leave the second field blank, and click **Create**. Now copy your API key, navigate to ...\TFTunes\properties\properties.txt, paste the key after "youtube key -> ", and save the file. Leave the properties file open as you read the next section. Change any properties as you see fit.
+ 1. Download [**XAMPP**](https://www.apachefriends.org/index.html). The recommended components for TFTunes are **Apache**, **MySQL**, **PHP**, and **phpMyAdmin**. Once you've finished installing XAMPP, navigate to `...\xampp\mysql\bin` and ensure the correct path to this directory is listed in `...\TFTunes\properties\properties.txt` under `mysql path`.
+ 1. You must create a Google account if you do not already have one. Then visit [Google APIs](https://console.developers.google.com/apis/library) and click **Select a Project > Create a project**. Set the project's name to *tftunes*, avoid spam emails, and agree to the Terms of Service. Then click Create. Next click **YouTube Data API** and hit **Enable**. Now click **Credentials > Create credentials > API key > Server key**. Name it *tftunes*, leave the second field blank, and click **Create**. Now copy your API key, navigate to ...\TFTunes\properties\properties.txt, paste the key after `youtube key -> `, and save the file. Leave the properties file open as you read the next section. Change any properties as you see fit.
 
 ## Properties
 Whenever TFTunes starts up, it configures itself using the properties found at `...\TFTunes\properties\properties.txt`. Property-value pairs are separated by the delimiter ` -> `. See [this list](https://wiki.teamfortress.com/wiki/Scripting#List_of_key_names) for valid key names for binding.
 
 * <a name="duration-limit-property"></a>**duration limit** - The number of seconds a song is allowed to play if there are songs in the queue. This limit is ignored if no songs are in the queue and will play until it is finished unless it is skipped. See command [!duration-limit](#duration-limit-command).
 * <a name="player-song-limit-property"></a>**player song limit** - The number of songs that a given player is allowed to have playing or in the queue at a time. Subsequent song requests after the limit is reached are ignored. See command [!player-song-limit](#player-song-limit-command).
-* <a name="queue-limit-property"></a>**queue limit** - The total number of songs allowed in the queue at a time. The song that is playing is not included. See command !queue-limit.
+* <a name="queue-limit-property"></a>**queue limit** - The total number of songs allowed in the queue at a time. The song that is playing is not included. See command [!queue-limit](#queue-limit-command).
 * **ignore bind** - The key for issuing the [!ignore](#ignore-command) command via chat.
 * **skip bind** - The key for issuing the [!skip](#skip-command) command via chat.
 * **instructions** - Instructions intended for teaching teammates how to request songs.
@@ -48,10 +48,10 @@ Whenever TFTunes starts up, it configures itself using the properties found at `
 * **cached query expiration** - The number of days after which a cached mapping from a song request to a YouTube video expires. This gives new videos a chance for discovery.
 * **song cache limit** - The number of most-requested songs to store on the owner's computer. Approximately 4.5 GB of storage required per 100 songs.
 * **min requests to cache** - The minimum number of times a song must be requested before it is stored on the owner's computer.
-* **youtube key** - A YouTube Data API key used track the requesting of YouTube data by a user. See [Installation](#Installation).
+* **youtube key** - A YouTube Data API key used track the requesting of YouTube data by a user. See [Installation](#installation).
 
 ## Chat commands
-Commands are issued to TFTunes by players via the ingame chat interface. Commands are only recognized if they appear at the beginning of the message and start with an exclamation point. Italics indicates that a command has the ability to write changes to the properties file. This is done by appending `-w` to the end of such a command (e.g. `!queue-limit-w 7`). Parameters are in square brackets.
+Commands are issued to TFTunes by players via the ingame chat interface. Commands are only recognized if they appear at the beginning of the message and start with an exclamation point. Italics indicates that a command has the ability to write changes to the properties file. This is done by appending `-w` to the end of such a command (e.g. `!queue-limit-w 7`). Parameters are indicated in square brackets. When commands are issued ingame, brackets do not surround the arguments.
 
 * **!song** [YouTube query] - Used to request the playing of a song. This is the only non-admin command.
 * <a name="skip-command"></a>**!skip** - Skips the song that is currently playing and starts the next song if there is one in the queue.
