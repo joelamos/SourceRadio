@@ -126,9 +126,8 @@ class Song {
 			cachedAudioPath = getCachedPath(songData[2]);
 		}
 		if (cachedAudioPath == null) {
-			System.out.println("lookup");
 			String youtubeId = Song.getYoutubeVideo(query);
-			String youtubeUrl = youtubeId;
+			String youtubeUrl = " http://www.youtube.com/watch?v=" + youtubeId;
 			String format = " -f bestaudio[ext!=webm] ";
 			String command = "\"" + YOUTUBEDL_PATH + "\"" + " -e -g --get-duration --get-filename -x" + format
 					+ youtubeUrl;

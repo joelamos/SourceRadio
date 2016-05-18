@@ -127,23 +127,28 @@ public class Playlist implements Closeable {
 				switch (command) {
 				case REQUEST_SONG:
 					argument = normalizeQuery(argument);
+					boolean badRequest = argument.isEmpty();
 					timeOfLastRequest = timeOfCurrentRequest;
 					timeOfCurrentRequest = Instant.now();
 					Song existing = findSongIfExists(argument);
 					Song song = null;
 					if (existing == null) {
 						song = Song.createSong(argument, durationLimit, username);
-						database.addSongRequest(argument, username, isAdmin(username), username.equalsIgnoreCase(owner),
-								song.usedCachedQuery());
+						if (!badRequest) {
+							database.addSongRequest(argument, username, isAdmin(username),
+									username.equalsIgnoreCase(owner), song.usedCachedQuery());
+						}
 					} else {
 						song = new Song(existing.getTitle(), existing.getStreamUrl(), existing.getYoutubeId(),
 								existing.getDuration(), durationLimit, argument, existing.getRequester(), true,
 								existing.getFileType());
 					}
-					database.updateCell("SONG_REQUEST", "SongID", song.getYoutubeId(), Types.VARCHAR, "ID",
-							String.valueOf(database.getLatestRequestId()), Types.INTEGER);
+					if (!badRequest) {
+						database.updateCell("SONG_REQUEST", "SongID", song.getYoutubeId(), Types.VARCHAR, "ID",
+								String.valueOf(database.getLatestRequestId()), Types.INTEGER);
+					}
 					songRequests.add(0, song);
-					if (song != null && argument.trim().length() > 0) {
+					if (song != null && !argument.trim().isEmpty()) {
 						handleNewSong(song);
 					}
 					break;
@@ -176,13 +181,13 @@ public class Playlist implements Closeable {
 					}
 					break;
 				case ADD_ADMIN:
-					addAdmin(argument.toLowerCase());
+					addAdmin(argument.toLowerCase(), toBeWritten);
 					if (commandVocalization) {
 						Command.ADD_ADMIN.playAudio(true, shareCommandVocals);
 					}
 					break;
 				case REMOVE_ADMIN:
-					success = removeAdmin(argument, username);
+					success = removeAdmin(argument, username, toBeWritten);
 					if (commandVocalization) {
 						Command.REMOVE_ADMIN.playAudio(success, shareCommandVocals);
 					}
@@ -380,7 +385,7 @@ public class Playlist implements Closeable {
 				} else {
 					songQueue.add(consecutiveIndex, song);
 				}
-				
+
 				if (currentSong.passedDurationLimit()) {
 					skipCurrentSong();
 				}
@@ -577,11 +582,15 @@ public class Playlist implements Closeable {
 	 * 
 	 * @param adminToAdd
 	 *            - the player to add as an admin
+	 * @param toBeWriten
+	 *            - indicates whether or not the player is to remain an admin after this session
 	 */
-	private void addAdmin(String adminToAdd) {
+	private void addAdmin(String adminToAdd, boolean toBeWritten) {
 		if (!isAdmin(adminToAdd)) {
 			admins.add(adminToAdd);
-			properties.addAdmin(adminToAdd);
+			if (toBeWritten) {
+				properties.addAdmin(adminToAdd);
+			}
 		}
 	}
 
@@ -592,16 +601,20 @@ public class Playlist implements Closeable {
 	 *            - the player who is no longer an admin
 	 * @param requester
 	 *            - the player who issued the command
+	 * @param toBeWriten
+	 *            - indicates whether or not this removal is to persist after this session
 	 * @return <code>true</code> if <code>adminToRemove</code> had been an admin and was successfully removed;
 	 *         <code>false</code> otherwise
 	 */
-	private boolean removeAdmin(String adminToRemove, String requester) {
+	private boolean removeAdmin(String adminToRemove, String requester, boolean toBeWritten) {
 		// Owners cannot remove themselves, and normal admins cannot remove other admins.
 		if (!adminToRemove.equalsIgnoreCase(owner) || !requester.equalsIgnoreCase(owner)) {
 			for (String admin : admins) {
 				if (admin.equalsIgnoreCase(adminToRemove)) {
 					admins.remove(admin);
-					properties.removeAdmin(admin);
+					if (toBeWritten) {
+						properties.removeAdmin(admin);
+					}
 					return true;
 				}
 			}
@@ -631,7 +644,7 @@ public class Playlist implements Closeable {
 	 * @param player
 	 *            - the player to ban
 	 * @param toBeWritten
-	 *            - indicates whether the player's ban is to persist after this session
+	 *            - indicates whether or not the player's ban is to persist after this session
 	 */
 	private void banPlayer(String player, boolean toBeWritten) {
 		if (!isBanned(player)) {
@@ -648,7 +661,7 @@ public class Playlist implements Closeable {
 	 * @param playerToUnban
 	 *            - the player to unban
 	 * @param toBeWritten
-	 *            - indicates whether this allowance is to persist after this session
+	 *            - indicates whether or not this allowance is to persist after this session
 	 * @return <code>true</code> if the specified player had been banned; <code>false</code> otherwise
 	 */
 	private boolean unbanPlayer(String playerToUnban, boolean toBeWritten) {
