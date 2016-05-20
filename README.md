@@ -1,6 +1,6 @@
 # TFTunes for Team Fortress 2
 ## Overview
-TFTunes makes it possible for an entire team to build a playlist and listen to music together as they play. TFTunes only has to be running on one player's computer (we'll call this player the *owner*). TFTunes automatically plays music through the owner's microphone to the rest of the team. Songs are requested by any player on the team via the chat interface. If multiple songs get requested within a short time span, the first requested song plays, and the others are queued.
+TFTunes makes it possible for an entire team to build a playlist and listen to music together as they play—even on Valve servers. TFTunes runs on one team member's computer (the "owner") and automatically plays music through the owner's microphone to the rest of the team. Songs are requested by any player on the team via the chat interface. If multiple songs get requested within a short time span, the first requested song plays, and the others are queued.
 
 The selection of music that can be played using TFTunes is practically infinite. That's because TFTunes streams music directly from YouTube. When players request a song, TFTunes takes the song request and sends it to YouTube, which spits out the top search result. TFTunes is smart, though, and stores the information gathered from each song request in a local database, using that information to avoid as many lookups as possible. TFTunes also saves the most-requested songs locally to the owner's drive in order to stream songs more efficiently.
 
@@ -15,8 +15,8 @@ The selection of music that can be played using TFTunes is practically infinite.
 ## Installation
 
  1. Download the ZIP file that is linked to from the [TFTunes Steam group](http://steamcommunity.com/groups/tftunes). Extract the contents and give them a permanent home (e.g. `C:\Program Files (x86)`).
+ 1. Make a shortcut of `run tftunes.bat` and place it somewhere acessible, as you will need to run it manually whenever you wish to use TFTunes.
  1. Open `...\TFTunes\properties\admins.txt` and enter your ingame username on the first line. Whenever you change your username, you need to update this line. Adding the names of other players on subsequent lines makes them "admins". This grants them the ability to issue almost every command.
- 1. Make a shortcut of `TFTunes.jar` and place it somewhere acessible, as you will need to run it manually whenever you wish to use TFTunes.
  1. Open the Steam library, right-click Team Fortress 2, and click **Properties**. Under the **General** tab, hit **Set Launch Options**. Enter `-condebug` and click OK.
  1. Download [**VB-Audio Virtual Cable**](http://vb-audio.pagesperso-orange.fr/Cable/index.htm). Extract the contents of the ZIP file and give them a permanent home. Open the VBCABLE folder and the run setup exe that corresponds to your system. Install the driver.
  1. Navigate to the sound options from the Windows Control Panel. Click on the **Recording** tab, select **CABLE Output** (reboot computer if missing), and click **Set Default**. Next, right-click CABLE Output, and click **Properties**. Click the **Listen** tab and check **Listen to this device**. Apply all changes.

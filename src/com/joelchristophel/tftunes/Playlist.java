@@ -66,8 +66,9 @@ public class Playlist implements Closeable {
 				playlist.logPath = argsList.get(logIndex + 1);
 			}
 
-			playlist.start();
 			playlist.printAdmins(true);
+			System.out.println("Listening for commands...");
+			playlist.start();
 		}
 	}
 
