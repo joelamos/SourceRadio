@@ -444,12 +444,15 @@ class Song {
 
 	/**
 	 * Determines whether or not this song has been requested enough to be cached. This determination is made using the
-	 * properties <code>song cache limit</code> and <code>min requests to cache</code>.
+	 * properties <code>song cache limit</code> and <code>min requests to cache</code>. Songs over 10 minutes in length
+	 * are not cached.
 	 * 
 	 * @return <code>true</code> if this song should be cached; <code>false</code> otherwise
 	 */
 	private boolean shouldBeCached() {
-		return database.getMostPopularSongs(CACHE_LIMIT, MIN_REQUESTS_TO_CACHE, true).contains(youtubeId);
+		boolean isPopular = database.getMostPopularSongs(CACHE_LIMIT, MIN_REQUESTS_TO_CACHE, true).contains(youtubeId);
+		boolean notTooLong = duration <= 600; // Ten minutes or less
+		return isPopular && notTooLong;
 	}
 
 	/**

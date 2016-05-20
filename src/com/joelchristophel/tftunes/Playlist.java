@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.sql.Types;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
@@ -433,7 +434,14 @@ public class Playlist implements Closeable {
 
 			@Override
 			public void run() {
-				try (BufferedReader reader = new BufferedReader(new FileReader(new File(logPath)))) {
+				File log = new File(logPath);
+				log.delete(); // Doesn't work if TF2 is running, but that's okay.
+				try {
+					log.createNewFile();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				try (BufferedReader reader = new BufferedReader(new FileReader(log))) {
 					while (reader.readLine() != null) {
 					}
 
@@ -807,7 +815,8 @@ public class Playlist implements Closeable {
 		if (query == null) {
 			query = "";
 		}
-		query = query.replaceAll("[\\u2000-\\u206F\\u2E00-\\u2E7F\\\\'!\"#$%&()*+,\\-\\.\\/:;<=>?@\\[\\]^_`{|}~]", " ");
+		query = query.replace("'", "");
+		query = query.replaceAll("[\\u2000-\\u206F\\u2E00-\\u2E7F\\\\!\"#$%&()*+,\\-\\.\\/:;<=>?@\\[\\]^_`{|}~]", " ");
 		query = Normalizer.normalize(query, Form.NFD);
 		query = query.replaceAll("\\s+", " ");
 		return query.toLowerCase(Locale.ENGLISH).trim();
