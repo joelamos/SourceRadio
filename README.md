@@ -15,7 +15,7 @@ The selection of music that can be played using TFTunes is practically infinite.
 ## Installation
 
  1. Download the ZIP file that is linked to from the [TFTunes Steam group](http://steamcommunity.com/groups/tftunes). Extract the contents and give them a permanent home (e.g. `C:\Program Files (x86)`).
- 1. Make a shortcut of `run tftunes.bat` and place it somewhere acessible, as you will need to run it manually whenever you wish to use TFTunes.
+ 1. Create a shortcut of `run tftunes.bat` and place it somewhere acessible, as you will need to run it manually whenever you wish to use TFTunes.
  1. Open `...\TFTunes\properties\admins.txt` and enter your ingame username on the first line. Whenever you change your username, you need to update this line. Adding the names of other players on subsequent lines makes them "admins". This grants them the ability to issue almost every command.
  1. Open the Steam library, right-click Team Fortress 2, and click **Properties**. Under the **General** tab, hit **Set Launch Options**. Enter `-condebug` and click OK.
  1. Download [**VB-Audio Virtual Cable**](http://vb-audio.pagesperso-orange.fr/Cable/index.htm). Extract the contents of the ZIP file and give them a permanent home. Open the VBCABLE folder and the run setup exe that corresponds to your system. Install the driver.
@@ -58,14 +58,14 @@ Commands are issued to TFTunes by players via the ingame chat interface. Command
 * <a name="ignore-command"></a>**!ignore** [optional request index `n`] - Ensures that the `n`th-to-last `!song` command is ignored (whether or not it would have been ignored automatically). The last `!song` command is ignored if no argument is provided.
 * **!extend** - Removes the [duration limit property](#duration-limit-property) from a song. Extended songs play until they are finished unless they are skipped or ignored.
 * **!clear** - Removes all songs from the queue and stops the song that is currently playing.
-* **!add-admin** [username] - Adds the specified player as an admin.
-* **!remove-admin** [username] - Removes the specified player from the list of admins. This command may only be issued by the owner, and the owner may not specify himself.
-* <a name="duration-limit-command"></a>**!duration-limit** [number of seconds] - Sets the number of seconds that songs are allowed to play if there are songs in the queue. [See property](#duration-limit-property).
-* <a name="player-song-limit-command"></a>**!player-song-limit** [number of songs] - Sets the number songs that a given player is allowed to have playing or in the queue at a time. See [See property](#player-song-limit-property).
-* <a name="queue-limit-command"></a>**!queue-limit** [number of songs] - Sets the total number of songs allowed in the queue at a time. [See property](#queue-limit-property).
-* **!ban** [username] - Bans the specified player from issuing commands.
-* **!unban** [username] - Unbans the specified player so that he may issue commands once again.
-* <a name="vocals-command"></a>**!vocals** [`on` or `off`]- Sets whether or not there should be an artificial vocalization every time a command is issued. [See property](#vocals-property).
+* ***!add-admin*** [username] - Adds the specified player as an admin.
+* ***!remove-admin*** [username] - Removes the specified player from the list of admins. This command may only be issued by the owner, and the owner may not specify himself.
+* <a name="duration-limit-command"></a>***!duration-limit*** [number of seconds] - Sets the number of seconds that songs are allowed to play if there are songs in the queue. [See property](#duration-limit-property).
+* <a name="player-song-limit-command"></a>***!player-song-limit*** [number of songs] - Sets the number songs that a given player is allowed to have playing or in the queue at a time. See [See property](#player-song-limit-property).
+* <a name="queue-limit-command"></a>***!queue-limit*** [number of songs] - Sets the total number of songs allowed in the queue at a time. [See property](#queue-limit-property).
+* ***!ban*** [username] - Bans the specified player from issuing commands.
+* ***!unban*** [username] - Unbans the specified player so that he may issue commands once again.
+* <a name="vocals-command"></a>***!vocals*** [`on` or `off`]- Sets whether or not there should be an artificial vocalization every time a command is issued. [See property](#vocals-property).
 * <a name="stop-command"></a>**!stop** - Closes the MySQL server and stops TFTunes. This command should *always* be issued when the owner is done running TFTunes.
 
 ## Program arguments
