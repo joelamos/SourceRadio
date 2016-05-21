@@ -135,14 +135,14 @@ public class Playlist implements Closeable {
 					Song existing = findSongIfExists(argument);
 					Song song = null;
 					if (existing == null) {
-						song = Song.createSong(argument, durationLimit, username);
+						song = Song.createSong(argument, username);
 						if (!badRequest) {
 							database.addSongRequest(argument, username, isAdmin(username),
 									username.equalsIgnoreCase(owner), song.usedCachedQuery());
 						}
 					} else {
 						song = new Song(existing.getTitle(), existing.getStreamUrl(), existing.getYoutubeId(),
-								existing.getDuration(), durationLimit, argument, existing.getRequester(), true,
+								existing.getDuration(), argument, existing.getRequester(), true,
 								existing.getFileType());
 					}
 					if (!badRequest) {
@@ -150,7 +150,7 @@ public class Playlist implements Closeable {
 								String.valueOf(database.getLatestRequestId()), Types.INTEGER);
 					}
 					songRequests.add(0, song);
-					if (song != null && !argument.trim().isEmpty()) {
+					if (song != null && song.getYoutubeId() != null && !argument.trim().isEmpty()) {
 						handleNewSong(song);
 					}
 					break;
@@ -376,7 +376,7 @@ public class Playlist implements Closeable {
 		});
 		if (songsFromRequester(song.getRequester()).size() < playerSongLimit && !isDuplicate(song)) {
 			if (currentSong == null) {
-				song.start();
+				song.start(durationLimit);
 				setCurrentSong(song);
 			} else {
 				int consecutiveIndex = consecutiveRequesterSongIndex();
@@ -408,7 +408,7 @@ public class Playlist implements Closeable {
 				setCurrentSong(null);
 			} else {
 				setCurrentSong(songQueue.remove(0));
-				currentSong.start();
+				currentSong.start(durationLimit);
 			}
 			return true;
 		}
@@ -436,12 +436,10 @@ public class Playlist implements Closeable {
 			@Override
 			public void run() {
 				File log = new File(logPath);
-				log.delete(); // Doesn't work if TF2 is running, but that's okay.
-				try {
-					log.createNewFile();
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
+				/*
+				 * log.delete(); // Doesn't work if TF2 is running, but that's okay. try { log.createNewFile(); } catch
+				 * (IOException e1) { e1.printStackTrace(); }
+				 */
 				try (BufferedReader reader = new BufferedReader(new FileReader(log))) {
 					while (reader.readLine() != null) {
 					}
