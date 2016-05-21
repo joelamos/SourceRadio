@@ -54,11 +54,11 @@ class Song {
 	private String streamUrl;
 	private String youtubeId;
 	private int duration;
-	private int durationLimit;
 	private String query;
 	private String requester;
 	private int requestId;
 	private String fileType;
+	private String playlist;
 	private boolean playing;
 	private boolean extended;
 	private boolean usedCachedQuery;
@@ -79,8 +79,6 @@ class Song {
 	 *            - the wrapped video's seven-character YouTube ID
 	 * @param duration
 	 *            - the duration in seconds of this song
-	 * @param durationLimit
-	 *            - the amount of time in seconds that this song is allowed to play if other songs are queued
 	 * @param query
 	 *            - the argument of the requester's song request
 	 * @param requester
@@ -90,18 +88,19 @@ class Song {
 	 * @param fileType
 	 *            - the type of file located at <code>streamUrl</code>
 	 */
-	Song(String title, String streamUrl, String youtubeId, int duration, int durationLimit, String query,
-			String requester, boolean usedCachedQuery, String fileType) {
+	Song(String title, String streamUrl, String youtubeId, int duration, String query, String requester,
+			boolean usedCachedQuery, String fileType) {
 		this.title = title;
 		this.streamUrl = streamUrl;
 		this.youtubeId = youtubeId;
 		this.duration = duration;
-		this.durationLimit = durationLimit;
 		this.query = query;
 		this.requester = requester;
 		this.usedCachedQuery = usedCachedQuery;
 		this.fileType = fileType;
-		database.addSong(youtubeId, streamUrl, title, duration, fileType);
+		if (youtubeId != null) {
+			database.addSong(youtubeId, streamUrl, title, duration, fileType);
+		}
 		requestId = database.getLatestRequestId();
 	}
 
@@ -111,13 +110,11 @@ class Song {
 	 * 
 	 * @param query
 	 *            - the argument of the requester's song request
-	 * @param durationLimit
-	 *            - the amount of time in seconds that this song is allowed to play if other songs are queued
 	 * @param requester
 	 *            - the player who requested this song
 	 * @return the newly created <code>Song</code>
 	 */
-	static Song createSong(String query, int durationLimit, String requester) {
+	static Song createSong(String query, String requester) {
 		Song song = null;
 		String[] songData = database.getSongDataFromQuery(query);
 		// Realized too late that stream URLs don't stay valid forever
@@ -127,52 +124,58 @@ class Song {
 		}
 		if (cachedAudioPath == null) {
 			String youtubeId = Song.getYoutubeVideo(query);
-			String youtubeUrl = " http://www.youtube.com/watch?v=" + youtubeId;
-			String format = " -f bestaudio[ext!=webm] ";
-			String command = "\"" + YOUTUBEDL_PATH + "\"" + " -e -g --get-duration --get-filename -x" + format
-					+ youtubeUrl;
-			Process process = null;
-			try {
-				process = Runtime.getRuntime().exec(command);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			try {
-				BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-				BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-				String title = stdInput.readLine();
-				String streamUrl = stdInput.readLine();
-
-				if (title == null || streamUrl == null) {
-					song = null;
-				} else {
-					String filename = stdInput.readLine();
-					String[] chunks = filename.split("[.]");
-					String extension = chunks[chunks.length - 1];
-					int duration = stringToSeconds(stdInput.readLine());
-					song = new Song(title, streamUrl, youtubeId, duration, durationLimit, query, requester, false,
-							extension);
+			if (youtubeId == null) {
+				song = new Song(null, null, null, -1, query, requester, false, null);
+			} else {
+				String youtubeUrl = " http://www.youtube.com/watch?v=" + youtubeId;
+				String format = " -f bestaudio[ext!=webm] ";
+				String command = "\"" + YOUTUBEDL_PATH + "\"" + " -e -g --get-duration --get-filename -x" + format
+						+ youtubeUrl;
+				Process process = null;
+				try {
+					process = Runtime.getRuntime().exec(command);
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
+				try {
+					BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+					BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-				String error = null;
-				while ((error = stdError.readLine()) != null) {
-					System.err.println(error);
+					String title = stdInput.readLine();
+					String streamUrl = stdInput.readLine();
+
+					if (title == null || streamUrl == null) {
+						song = null;
+					} else {
+						String filename = stdInput.readLine();
+						String[] chunks = filename.split("[.]");
+						String extension = chunks[chunks.length - 1];
+						int duration = stringToSeconds(stdInput.readLine());
+						song = new Song(title, streamUrl, youtubeId, duration, query, requester, false, extension);
+					}
+
+					String error = null;
+					while ((error = stdError.readLine()) != null) {
+						System.err.println(error);
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		} else {
-			song = new Song(songData[0], songData[1], songData[2], Integer.parseInt(songData[3]), durationLimit, query,
-					requester, true, songData[4]);
+			song = new Song(songData[0], songData[1], songData[2], Integer.parseInt(songData[3]), query, requester,
+					true, songData[4]);
 		}
 		return song;
 	}
 
 	/**
 	 * Starts playing this song.
+	 * 
+	 * @param durationLimit
+	 *            - the amount of time in seconds that this song is allowed to play if other songs are queued
 	 */
-	void start() {
+	void start(int durationLimit) {
 		if (!playing) {
 			String writePath = null;
 			if (database.started() && shouldBeCached() && getCachedPath(youtubeId) == null) {
@@ -524,16 +527,6 @@ class Song {
 	 */
 	int getDuration() {
 		return duration;
-	}
-
-	/**
-	 * Returns the amount of time in seconds that this song is allowed to play, assuming other songs are queued and this
-	 * song has not been extended.
-	 * 
-	 * @return the amount of time in seconds that this song is allowed to play
-	 */
-	int getDurationLimit() {
-		return durationLimit;
 	}
 
 	/**
