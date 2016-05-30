@@ -1,5 +1,11 @@
 *.m4a
+*.bat
+*.zip
+*.jar
+banned players.txt
+blocked songs.txt
 /target/
+/SourceRadio
 
 /bin/
 .settings
