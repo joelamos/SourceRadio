@@ -93,15 +93,17 @@ This file contains SourceRadio's main parameters. Property-value pairs are separ
 
 If you wish, you may use this file to grant administrative privileges to specified players. Admins are able to execute most of the available [ingame commands](#ingame-commands). This allows them to complete tasks that normal players can't, such as skipping songs and banning players.
 
-This file should contain a list of the IDs (steamID3) of each player you wish to make an admin. Each ID must be on its own line. There are online tools that allow you to convert a player's Steam profile URL to a steamID3 for this file. Alternatively, you can add admins using the ingame `!add-admin [username]` command, so long as the player is on the same server with you.
+This file should contain a list of the IDs (steamID3) of each player you wish to make an admin. Each ID must be on its own line. There are online tools that allow you to convert a player's Steam profile URL to a steamID3 for this file. Alternatively, you can add admins using the ingame `!add-admin [username]` command, so long as the player is on the same server with you. As the owner, you do not have to place your ID in this file to grant yourself privileges.
 
-**Note**: As the owner, you do not have to place your ID in this file to grant yourself privileges.
+**Note**: For the steamID3 `[U:1:193286671]`, you would use `193286671` in this file.
 
 ###banned players.txt
 
 If you wish, you may use this file to revoke the ability for certain players to request songs. 
 
 This file should contain a list of the IDs (steamID3) of each player you wish to ban. Each ID must be on its own line. There are online tools that allow you to convert a player’s Steam profile URL to a steamID3 for this file. Alternatively, you can ban players using the ingame `!ban [username]` command, so long as the player is on the same server with you.
+
+**Note**: For the steamID3 `[U:1:193286671]`, you would use `193286671` in this file.
 
 ###blocked songs.txt
 
