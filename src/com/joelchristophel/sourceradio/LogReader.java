@@ -155,7 +155,6 @@ class LogReader implements Closeable {
 		if (username.startsWith("*DEAD*")) {
 			username = username.replaceFirst("[*]DEAD[*]", "");
 		}
-		System.out.println(username);
 		for (String pattern : Game.getCurrentGame().getNamePatternsToRemove()) {
 			username = username.replaceAll(pattern, "");
 		}
