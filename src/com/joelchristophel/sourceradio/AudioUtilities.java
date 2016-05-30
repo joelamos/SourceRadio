@@ -49,6 +49,7 @@ class AudioUtilities {
 			final String command = "\"" + CONTROLLER_PATH + "\" play \"" + source + "\" " + (duration + 1) + " \""
 					+ soundOut + "\" " + writePath;
 			try {
+				System.out.println(command);
 				process = Runtime.getRuntime().exec(command);
 				printErrorStream(process);
 			} catch (IOException e) {
