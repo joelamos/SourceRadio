@@ -44,14 +44,14 @@ Below, an asterisk indicates that a command has the ability to write changes to 
 * <a name="ignore-command"></a>**!ignore** [optional request index `n`] - Ensures that the `n`th-to-last `!song` command is ignored (whether or not it would have been ignored automatically). The last `!song` command is ignored if no argument is provided.
 * **!extend** - Removes the [duration limit property](#duration-limit-property) from a song. Extended songs play until they are finished unless they are skipped or ignored.
 * **!clear** - Removes all songs from the queue and stops the song that is currently playing.
-* **!add-admin*** [username] - Adds the specified player as an admin. See [admins.txt](#admins.txt).
+* **!add-admin*** [username] - Adds the specified player as an admin. See [admins.txt](#adminstxt).
 * **!remove-admin*** [username] - Removes the specified player from the list of admins. This command may only be issued by the owner, and the owner may not specify himself.
 * <a name="duration-limit-command"></a>**!duration-limit*** [number of seconds] - Sets the number of seconds that songs are allowed to play if there are songs in the queue. [See property](#duration-limit-property).
 * <a name="player-song-limit-command"></a>**!player-song-limit*** [number of songs] - Sets the number songs that a given player is allowed to have playing or in the queue at a time. [See property](#player-song-limit-property).
 * <a name="queue-limit-command"></a>**!queue-limit*** [number of songs] - Sets the total number of songs allowed in the queue at a time. [See property](#queue-limit-property).
-* **!ban*** [username] - Bans the specified player from issuing commands. See [banned players.txt](#banned-players.txt).
+* **!ban*** [username] - Bans the specified player from issuing commands. See [banned players.txt](#banned-playerstxt).
 * **!unban*** [username] - Unbans the specified player so that he may issue commands once again.
-* **!block-song*** [request index *n* **or** song title] - Ensures that the song referenced by the `n`th-to-last `!song` command **or** by the specified song title is never allowed  to play. If the referenced song is playing or queued upon being blocked, it gets terminated. If `n = 0`, the currently playing song gets blocked. If no argument is provided, the song referenced by the last `!song` command gets blocked. See [blocked songs.txt](#blocked-songs.txt).
+* **!block-song*** [request index *n* **or** song title] - Ensures that the song referenced by the `n`th-to-last `!song` command **or** by the specified song title is never allowed  to play. If the referenced song is playing or queued upon being blocked, it gets terminated. If `n = 0`, the currently playing song gets blocked. If no argument is provided, the song referenced by the last `!song` command gets blocked. See [blocked songs.txt](#blocked-songstxt).
 * **!unblock-song*** [song title] - Revokes the previous block that was placed on the specified song.
 * <a name="vocals-command"></a>**!vocals*** [`on` or `off`]- Sets whether or not there should be an artificial vocalization every time a command is issued. [See property](#vocals-property).
 * <a name="stop-command"></a>**!stop** - Closes the MySQL server and stops SourceRadio. This command should *always* be issued when the owner is done running SourceRadio.
