@@ -1,4 +1,4 @@
-package com.joelchristophel.tftunes;
+package com.joelchristophel.sourceradio;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -19,6 +19,7 @@ class AudioUtilities {
 
 	private static final String CONTROLLER_PATH = Paths.get("audio/controller/AudioController.exe").toAbsolutePath()
 			.toString();
+	private static final String WRITER_PATH = Paths.get("audio/controller/AudioWriter.exe").toAbsolutePath().toString();
 
 	private AudioUtilities() {
 	}
@@ -29,7 +30,7 @@ class AudioUtilities {
 	 * @param source
 	 *            - a web URL or a path to audio.
 	 * @param duration
-	 *            - the duration of the audio to be played
+	 *            - the duration in seconds of the audio to be played
 	 * @param shareAudio
 	 *            - indicates whether or not the playback is to be local or shared with teammates
 	 * @param writePath
@@ -45,13 +46,26 @@ class AudioUtilities {
 			if (!source.startsWith("http")) {
 				source = Paths.get(source).toAbsolutePath().toString();
 			}
-			String command = "\"" + CONTROLLER_PATH + "\" play \"" + source + "\" " + duration + " \"" + soundOut
-					+ "\" " + writePath;
+			final String command = "\"" + CONTROLLER_PATH + "\" play \"" + source + "\" " + (duration + 1) + " \""
+					+ soundOut + "\" " + writePath;
 			try {
 				process = Runtime.getRuntime().exec(command);
+				printErrorStream(process);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+		return process;
+	}
+
+	static Process writeAudio(String source, String writePath) {
+		String command = "\"" + WRITER_PATH + "\" \"" + source + "\" " + writePath + "";
+		Process process = null;
+		try {
+			process = Runtime.getRuntime().exec(command);
+			printErrorStream(process);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		return process;
 	}
@@ -125,5 +139,26 @@ class AudioUtilities {
 		} catch (IOException e) {
 		}
 		return device;
+	}
+
+	private static void printErrorStream(final Process process) {
+		if (process != null) {
+			new Thread(new Runnable() {
+
+				@Override
+				public void run() {
+					try (BufferedReader stdError = new BufferedReader(
+							new InputStreamReader(process.getErrorStream()))) {
+						String error = null;
+						while ((error = stdError.readLine()) != null) {
+							System.err.println(error);
+							Thread.sleep(200);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}).start();
+		}
 	}
 }

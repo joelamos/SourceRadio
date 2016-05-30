@@ -1,11 +1,9 @@
-package com.joelchristophel.tftunes;
+package com.joelchristophel.sourceradio;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Types;
 import java.text.DateFormat;
@@ -16,7 +14,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.Consumer;
 
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -45,6 +42,7 @@ class Song {
 	private static final int CACHE_LIMIT = Integer.parseInt(properties.get("song cache limit"));
 	private static final int MIN_REQUESTS_TO_CACHE = Integer.parseInt(properties.get("min requests to cache"));
 	private static final String YOUTUBEDL_PATH = Paths.get("libraries/youtube-dl.exe").toAbsolutePath().toString();
+	private static final String FILE_TYPE = "m4a";
 	private static DatabaseManager database = DatabaseManager.getInstance();
 	private List<SongListener> listeners = new ArrayList<SongListener>();
 	private Timer finishTimer = new Timer();
@@ -55,14 +53,13 @@ class Song {
 	private String youtubeId;
 	private int duration;
 	private String query;
-	private String requester;
+	private Player requester;
 	private int requestId;
-	private String fileType;
-	private String playlist;
 	private boolean playing;
 	private boolean extended;
 	private boolean usedCachedQuery;
 	private boolean usedCachedAudio;
+	private String writePath;
 	public Process process;
 	private boolean passedDurationLimit;
 
@@ -88,8 +85,8 @@ class Song {
 	 * @param fileType
 	 *            - the type of file located at <code>streamUrl</code>
 	 */
-	Song(String title, String streamUrl, String youtubeId, int duration, String query, String requester,
-			boolean usedCachedQuery, String fileType) {
+	Song(String title, String streamUrl, String youtubeId, int duration, String query, Player requester,
+			boolean usedCachedQuery) {
 		this.title = title;
 		this.streamUrl = streamUrl;
 		this.youtubeId = youtubeId;
@@ -97,11 +94,9 @@ class Song {
 		this.query = query;
 		this.requester = requester;
 		this.usedCachedQuery = usedCachedQuery;
-		this.fileType = fileType;
 		if (youtubeId != null) {
-			database.addSong(youtubeId, streamUrl, title, duration, fileType);
+			database.addSong(youtubeId, title, duration);
 		}
-		requestId = database.getLatestRequestId();
 	}
 
 	/**
@@ -114,57 +109,62 @@ class Song {
 	 *            - the player who requested this song
 	 * @return the newly created <code>Song</code>
 	 */
-	static Song createSong(String query, String requester) {
+	static Song createSong(String query, Player requester) {
 		Song song = null;
-		String[] songData = database.getSongDataFromQuery(query);
-		// Realized too late that stream URLs don't stay valid forever
-		String cachedAudioPath = null;
-		if (songData != null) {
-			cachedAudioPath = getCachedPath(songData[2]);
-		}
-		if (cachedAudioPath == null) {
-			String youtubeId = Song.getYoutubeVideo(query);
-			if (youtubeId == null) {
-				song = new Song(null, null, null, -1, query, requester, false, null);
-			} else {
-				String youtubeUrl = " http://www.youtube.com/watch?v=" + youtubeId;
-				String format = " -f bestaudio[ext!=webm] ";
-				String command = "\"" + YOUTUBEDL_PATH + "\"" + " -e -g --get-duration --get-filename -x" + format
-						+ youtubeUrl;
-				Process process = null;
-				try {
-					process = Runtime.getRuntime().exec(command);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				try {
-					BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-					BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-					String title = stdInput.readLine();
-					String streamUrl = stdInput.readLine();
-
-					if (title == null || streamUrl == null) {
-						song = null;
-					} else {
-						String filename = stdInput.readLine();
-						String[] chunks = filename.split("[.]");
-						String extension = chunks[chunks.length - 1];
-						int duration = stringToSeconds(stdInput.readLine());
-						song = new Song(title, streamUrl, youtubeId, duration, query, requester, false, extension);
-					}
-
-					String error = null;
-					while ((error = stdError.readLine()) != null) {
-						System.err.println(error);
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+		if (query == null || query.isEmpty()) {
+			song = new Song(null, null, null, -1, query, requester, false);
 		} else {
-			song = new Song(songData[0], songData[1], songData[2], Integer.parseInt(songData[3]), query, requester,
-					true, songData[4]);
+			String[] songData = database.getSongDataFromQuery(query);
+			String cachedAudioPath = null;
+			String youtubeId = null;
+			if (songData != null) {
+				youtubeId = songData[1];
+				cachedAudioPath = getCachedPath(youtubeId);
+			}
+			if (cachedAudioPath == null) {
+				boolean usedCachedQuery = false;
+				if (youtubeId == null) {
+					youtubeId = Song.getYoutubeVideo(query);
+				} else {
+					usedCachedQuery = true;
+				}
+				if (youtubeId == null) {
+					song = new Song(null, null, null, -1, query, requester, false);
+				} else {
+					String youtubeUrl = " http://www.youtube.com/watch?v=" + youtubeId;
+					String format = " -f bestaudio[ext!=webm] ";
+					String command = "\"" + YOUTUBEDL_PATH + "\"" + " -e -g --get-duration -x" + format + youtubeUrl;
+					Process process = null;
+					try {
+						process = Runtime.getRuntime().exec(command);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					try {
+						BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+						BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+						String title = stdInput.readLine();
+						String streamUrl = stdInput.readLine();
+
+						if (title == null || streamUrl == null) {
+							song = null;
+						} else {
+							int duration = stringToSeconds(stdInput.readLine());
+							song = new Song(title, streamUrl, youtubeId, duration, query, requester, usedCachedQuery);
+						}
+
+						String error = null;
+						while ((error = stdError.readLine()) != null) {
+							System.err.println(error);
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			} else {
+				song = new Song(songData[0], null, songData[1], Integer.parseInt(songData[2]), query, requester, true);
+			}
 		}
 		return song;
 	}
@@ -177,16 +177,19 @@ class Song {
 	 */
 	void start(int durationLimit) {
 		if (!playing) {
-			String writePath = null;
 			if (database.started() && shouldBeCached() && getCachedPath(youtubeId) == null) {
 				if (!roomForMoreCache()) {
 					getLeastPopularCachedSong().delete();
 				}
 				String titlePart = title.replaceAll("[<>:\"/\\|*?]", "");
-				writePath = "\"" + Paths.get(CACHE_PATH + "/" + titlePart + " (" + youtubeId + ")." + fileType)
+				writePath = "\"" + Paths.get(CACHE_PATH + "/" + titlePart + " (" + youtubeId + ")." + FILE_TYPE)
 						.toAbsolutePath().toString() + "\"";
 			}
-			process = AudioUtilities.playAudio(getSourceToUse(), (duration + 1) * 1000, true, writePath);
+			String source = getSourceToUse();
+			process = AudioUtilities.playAudio(getSourceToUse(), (duration + 1) * 1000, true, null);
+			if (writePath != null) {
+				AudioUtilities.writeAudio(source, writePath);
+			}
 			playing = true;
 			passedDurationLimit = false;
 			limitTimer.cancel();
@@ -280,7 +283,7 @@ class Song {
 					new HttpRequestInitializer() {
 						public void initialize(HttpRequest request) throws IOException {
 						}
-					}).setApplicationName("tftunes").build();
+					}).setApplicationName("sourceradio").build();
 
 			YouTube.Search.List search = youtube.search().list("id");
 			search.setKey(properties.get("youtube key"));
@@ -328,7 +331,7 @@ class Song {
 	 *         does not exist
 	 */
 	private static String getCachedPath(String youtubeId) {
-		List<File> songs = getFiles(CACHE_PATH);
+		File[] songs = new File(CACHE_PATH).listFiles();
 		for (File song : songs) {
 			String[] nameChunks = song.getName().split(" ");
 			if (nameChunks.length > 1) {
@@ -368,7 +371,7 @@ class Song {
 	 */
 	private static File getLeastPopularCachedSong() {
 		File leastPopularSong = null;
-		List<File> files = getFiles(CACHE_PATH);
+		File[] files = new File(CACHE_PATH).listFiles();
 		List<String> ids = new ArrayList<String>();
 		List<File> leastPopularSongs = null;
 		List<String> leastPopularIds = null;
@@ -391,7 +394,7 @@ class Song {
 			leastPopularSong = leastPopularSongs.get(0);
 		} else {
 			String lowestPriority = getLowestPrioritySong(leastPopularIds);
-			leastPopularSong = files.get(ids.indexOf(lowestPriority));
+			leastPopularSong = files[ids.indexOf(lowestPriority)];
 		}
 		return leastPopularSong;
 	}
@@ -422,30 +425,6 @@ class Song {
 	}
 
 	/**
-	 * Returns a list of files contained in the specified directory.
-	 * 
-	 * @param directory
-	 *            - a path to a directory
-	 * @return a list of files contained in the specified directory
-	 */
-	private static List<File> getFiles(String directory) {
-		final List<File> files = new ArrayList<File>();
-		try {
-			Files.walk(Paths.get(directory).toAbsolutePath()).forEach(new Consumer<Path>() {
-				@Override
-				public void accept(Path filePath) {
-					if (Files.isRegularFile(filePath)) {
-						files.add(new File(filePath.toString()));
-					}
-				}
-			});
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return files;
-	}
-
-	/**
 	 * Determines whether or not this song has been requested enough to be cached. This determination is made using the
 	 * properties <code>song cache limit</code> and <code>min requests to cache</code>. Songs over 10 minutes in length
 	 * are not cached.
@@ -464,7 +443,7 @@ class Song {
 	 * @return <true>if the number of cached songs exceeds the limit; <code>false</code> otherwise
 	 */
 	private static boolean roomForMoreCache() {
-		return getFiles(CACHE_PATH).size() < Integer.parseInt(properties.get("song cache limit"));
+		return new File(CACHE_PATH).listFiles().length < Integer.parseInt(properties.get("song cache limit"));
 	}
 
 	/**
@@ -491,6 +470,10 @@ class Song {
 			e.printStackTrace();
 		}
 		return (int) ((date.getTime() - reference.getTime()) / 1000L);
+	}
+
+	public Song copy(Player requester) {
+		return new Song(getTitle(), getStreamUrl(), getYoutubeId(), getDuration(), query, requester, true);
 	}
 
 	/**
@@ -539,11 +522,11 @@ class Song {
 	}
 
 	/**
-	 * Returns the username of this song's requester.
+	 * Returns this song's requester.
 	 * 
-	 * @return the username of this song's requester
+	 * @return this song's requester
 	 */
-	String getRequester() {
+	Player getRequester() {
 		return requester;
 	}
 
@@ -556,6 +539,10 @@ class Song {
 		return requestId;
 	}
 
+	void setRequestId(int requestId) {
+		this.requestId = requestId;
+	}
+
 	/**
 	 * Indicates whether or not this song's data was acquired from a cached song request
 	 * 
@@ -564,15 +551,6 @@ class Song {
 	 */
 	boolean usedCachedQuery() {
 		return usedCachedQuery;
-	}
-
-	/**
-	 * Returns the type of file located at {@link #getStreamUrl}
-	 * 
-	 * @return the type of file located at <code>getStreamUrl</code>
-	 */
-	String getFileType() {
-		return fileType;
 	}
 
 	/**

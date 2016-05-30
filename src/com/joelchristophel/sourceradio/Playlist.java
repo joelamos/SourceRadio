@@ -1,10 +1,6 @@
-package com.joelchristophel.tftunes;
+package com.joelchristophel.sourceradio;
 
-import java.io.BufferedReader;
 import java.io.Closeable;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.sql.Types;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
@@ -12,8 +8,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -30,14 +28,16 @@ import java.util.Set;
  */
 public class Playlist implements Closeable {
 
-	private static Playlist instance;
 	private static Properties properties = Properties.getInstance();
-	private static DatabaseManager database = DatabaseManager.getInstance();
-	private boolean programIsRunning = true;
-	private String owner;
-	private Set<String> admins;
-	private Set<String> bannedPlayers;
-	private String logPath;
+	private static Playlist instance;
+	private ScriptWriter scriptWriter;
+	private DatabaseManager database;
+	private Player owner;
+	private Set<Player> admins;
+	private Set<Player> bannedPlayers;
+	private Set<String> blockedSongs;
+	private LogReader logReader;
+	private Game game;
 	private boolean commandVocalization;
 	private boolean shareCommandVocals;
 	private int volumeIncrement;
@@ -46,27 +46,35 @@ public class Playlist implements Closeable {
 	private int queueLimit;
 	private Song currentSong;
 	private List<Song> songRequests = new ArrayList<Song>();
+	private Map<Player, List<Runnable>> playerDiscoveryJobs = new HashMap<Player, List<Runnable>>();
 	private List<Song> songQueue = new ArrayList<Song>();
 	private Instant timeOfLastRequest;
 	private Instant timeOfCurrentRequest;
 
 	public static void main(String[] args) {
 		List<String> argsList = args == null ? new ArrayList<String>() : new ArrayList(Arrays.asList(args));
-		if (argsList.contains("-d")) {
+		if (argsList.contains("-d")) { // Restore default properties
 			System.out.println("**Restoring default properties**");
 			properties.restoreDefaults();
 		}
-		if (argsList.isEmpty() || argsList.contains("-l")) {
-			System.out.println("**Running TFTunes**");
-			Playlist playlist = Playlist.getInstance();
-
-			// Specify a different log path for debugging
-			int logIndex = argsList.indexOf("-l");
-			if (logIndex != -1) {
-				playlist.logPath = argsList.get(logIndex + 1);
+		if (argsList.isEmpty()
+				|| (((argsList.contains("-l") || argsList.contains("-f")) && !argsList.contains("-g")))) {
+			throw new IllegalArgumentException("You must specify which game you are playing.");
+		}
+		if (argsList.contains("-g")) { // Run SourceRadio
+			Game game = Game.getGame(argsList.get(argsList.indexOf("-g") + 1));
+			int argIndex = -1;
+			if ((argIndex = argsList.indexOf("-f")) != -1) { // Set the game's directory
+				game.setPath(argsList.get(argIndex + 1));
 			}
+			Playlist playlist = Playlist.getInstance(game);
+			System.out.println("**Running SourceRadio**");
 
-			playlist.printAdmins(true);
+			if ((argIndex = argsList.indexOf("-l")) != -1) { // Specify a different log path for debugging
+				playlist.logReader.setDebugLogPath(argsList.get(argIndex + 1));
+				System.out.println("DEBUG MODE");
+			}
+			System.out.println("Game: " + game.getFriendlyName());
 			System.out.println("Listening for commands...");
 			playlist.start();
 		}
@@ -77,8 +85,16 @@ public class Playlist implements Closeable {
 	 * 
 	 * @return a <code>Playlist</code> instance
 	 */
-	public synchronized static Playlist getInstance() {
-		return instance == null ? (instance = new Playlist()) : instance;
+	public synchronized static Playlist getInstance(Game game) {
+		Playlist playlist = null;
+		if (instance == null) {
+			playlist = (instance = new Playlist(game));
+		} else {
+			if (instance.game == game) {
+				playlist = instance;
+			}
+		}
+		return playlist;
 	}
 
 	/**
@@ -86,8 +102,9 @@ public class Playlist implements Closeable {
 	 * 
 	 * @see #getInstance
 	 */
-	private Playlist() {
+	private Playlist(Game game) {
 		super();
+		this.game = game;
 		initialize();
 	}
 
@@ -95,12 +112,16 @@ public class Playlist implements Closeable {
 	 * Starts the database, initializes instance variables, and writes key binds.
 	 */
 	private void initialize() {
+		Game.setCurrentGame(game);
+		logReader = LogReader.getInstance();
+		database = DatabaseManager.getInstance();
 		database.start();
-		properties.writeBinds();
+		scriptWriter = new ScriptWriter();
+		scriptWriter.writeScripts();
 		owner = properties.getOwner();
 		admins = properties.getAdmins();
 		bannedPlayers = properties.getBannedPlayers();
-		logPath = properties.get("tf2 path") + File.separator + "console.log";
+		blockedSongs = properties.getBlockedSongs();
 		durationLimit = Integer.parseInt(properties.get("duration limit"));
 		playerSongLimit = Integer.parseInt(properties.get("player song limit"));
 		queueLimit = Integer.parseInt(properties.get("queue limit"));
@@ -110,244 +131,283 @@ public class Playlist implements Closeable {
 	}
 
 	/**
+	 * This method starts the playlist by beginning to listen for new lines in <code>console.log</code>, a real-time
+	 * dump of the console log. New lines get sent to {@link #handleNewInput} for parsing.
+	 */
+	public void start() {
+		logReader.start(this);
+	}
+
+	public void setGame(Game game) {
+		this.game = game;
+	}
+
+	/**
 	 * Handles a new line from the console log. More specifically, this method looks for and executes commands being
 	 * issued via the ingame chat.
 	 * 
 	 * @param input
-	 *            - a line of input from tf/console.log
+	 *            - a line of input from <code>console.log</code>
 	 */
-	private void handleNewInput(String input) {
-		if (input.contains(" :  ")) {
-			String[] inputArray = input.split(" :  ");
-			String username = inputArray[0].replace("(TEAM)", "").replace("*DEAD*", "").trim();
-			String message = inputArray[1].trim();
-			Command command = Command.triggeredBy(message, isAdmin(username), isBanned(username));
-			if (command != null) {
-				String argument = getCommandArgument(message);
-				boolean toBeWritten = changesToBeWritten(message) && command.propertyUpdate;
-				boolean success = false;
-				switch (command) {
-				case REQUEST_SONG:
-					argument = normalizeQuery(argument);
-					boolean badRequest = argument.isEmpty();
-					timeOfLastRequest = timeOfCurrentRequest;
-					timeOfCurrentRequest = Instant.now();
-					Song existing = findSongIfExists(argument);
-					Song song = null;
-					if (existing == null) {
-						song = Song.createSong(argument, username);
-						if (!badRequest) {
-							database.addSongRequest(argument, username, isAdmin(username),
-									username.equalsIgnoreCase(owner), song.usedCachedQuery());
-						}
-					} else {
-						song = new Song(existing.getTitle(), existing.getStreamUrl(), existing.getYoutubeId(),
-								existing.getDuration(), argument, existing.getRequester(), true,
-								existing.getFileType());
-					}
-					if (!badRequest) {
-						database.updateCell("SONG_REQUEST", "SongID", song.getYoutubeId(), Types.VARCHAR, "ID",
-								String.valueOf(database.getLatestRequestId()), Types.INTEGER);
-					}
-					songRequests.add(0, song);
-					if (song != null && song.getYoutubeId() != null && !argument.trim().isEmpty()) {
-						handleNewSong(song);
-					}
-					break;
-				case SKIP:
-					Song temp = currentSong;
-					if (skipCurrentSong()) {
-						database.updateCell("SONG_REQUEST", "Skipped", "true", Types.BOOLEAN, "ID",
-								String.valueOf(temp.getRequestId()), Types.INTEGER);
-						if (commandVocalization) {
-							Command.SKIP.playAudio(true, shareCommandVocals);
-						}
-					}
-					break;
-				case EXTEND:
-					boolean isACurrentSong = currentSong != null;
-					if (isACurrentSong) {
-						currentSong.extend();
-						database.updateCell("SONG_REQUEST", "Extended", "true", Types.BOOLEAN, "ID",
-								String.valueOf(currentSong.getRequestId()), Types.INTEGER);
-
-					}
-					if (commandVocalization) {
-						Command.EXTEND.playAudio(isACurrentSong, shareCommandVocals);
-					}
-					break;
-				case CLEAR:
-					clearSongs();
-					if (commandVocalization) {
-						Command.CLEAR.playAudio(true, shareCommandVocals);
-					}
-					break;
-				case ADD_ADMIN:
-					addAdmin(argument.toLowerCase(), toBeWritten);
-					if (commandVocalization) {
-						Command.ADD_ADMIN.playAudio(true, shareCommandVocals);
-					}
-					break;
-				case REMOVE_ADMIN:
-					success = removeAdmin(argument, username, toBeWritten);
-					if (commandVocalization) {
-						Command.REMOVE_ADMIN.playAudio(success, shareCommandVocals);
-					}
-					break;
-				case SET_DURATION_LIMIT:
-					try {
-						int newLimit = Integer.parseInt(argument);
-						boolean changeLimit = newLimit >= 10;
-						if (changeLimit) {
-							durationLimit = newLimit;
-							if (toBeWritten) {
-								properties.writeProperty("duration limit", String.valueOf(newLimit));
-							}
-							success = true;
-						}
-					} catch (NumberFormatException e) {
-					}
-					if (commandVocalization) {
-						Command.SET_DURATION_LIMIT.playAudio(success, shareCommandVocals);
-					}
-					break;
-				case SET_PLAYER_SONG_LIMIT:
-					try {
-						int newLimit = Integer.parseInt(argument);
-						boolean changeLimit = newLimit > 0;
-						if (changeLimit) {
-							playerSongLimit = newLimit;
-							if (toBeWritten) {
-								properties.writeProperty("player song limit", String.valueOf(newLimit));
-							}
-							success = true;
-						}
-					} catch (NumberFormatException e) {
-					}
-					if (commandVocalization) {
-						Command.SET_PLAYER_SONG_LIMIT.playAudio(success, shareCommandVocals);
-					}
-					break;
-				case SET_QUEUE_LIMIT:
-					try {
-						int newLimit = Integer.parseInt(argument);
-						boolean changeLimit = newLimit >= 0;
-						if (changeLimit) {
-							queueLimit = newLimit;
-							if (toBeWritten) {
-								properties.writeProperty("queue limit", String.valueOf(newLimit));
-							}
-							success = true;
-						}
-					} catch (NumberFormatException e) {
-					}
-					if (commandVocalization) {
-						Command.SET_QUEUE_LIMIT.playAudio(success, shareCommandVocals);
-					}
-					break;
-				case IGNORE_REQUEST:
-					Song toIgnore = null;
-					try {
-						int requestIndex = Integer.parseInt(argument);
-						if (requestIndex >= 1 && songRequests.size() >= requestIndex) {
-							toIgnore = songRequests.get(requestIndex - 1);
-						}
-					} catch (NumberFormatException e) {
-						if ((argument == null || argument.equals("")) && !songRequests.isEmpty()) {
-							toIgnore = songRequests.get(0);
-						}
-					}
-					if (toIgnore != null) {
-						songQueue.remove(toIgnore);
-
-						if (currentSong != null && currentSong.equals(toIgnore)) {
-							skipCurrentSong();
-						}
-					}
-					break;
-				case BAN_PLAYER:
-					banPlayer(argument.toLowerCase(), toBeWritten);
-					if (commandVocalization) {
-						Command.BAN_PLAYER.playAudio(true, shareCommandVocals);
-					}
-					break;
-				case UNBAN_PLAYER:
-					success = unbanPlayer(argument.toLowerCase(), toBeWritten);
-					if (commandVocalization) {
-						Command.UNBAN_PLAYER.playAudio(success, shareCommandVocals);
-					}
-					break;
-				case ENABLE_VOCALS:
-					boolean wasEnabled = commandVocalization;
-					boolean on = argument.trim().equalsIgnoreCase("on");
-					boolean off = argument.trim().equalsIgnoreCase("off");
-					if (on || off) {
-						if (wasEnabled) {
-							if (on) {
-								String alreadyOn = "audio/commands/vocals already on.wav";
-								AudioUtilities.playAudio(alreadyOn, AudioUtilities.durationMillis(alreadyOn),
-										shareCommandVocals, null);
-							} else {
-								commandVocalization = false;
-								if (toBeWritten) {
-									properties.writeProperty("enable command vocalization", "false");
-								}
-								String vocalsOff = "audio/commands/vocals off.wav";
-								AudioUtilities.playAudio(vocalsOff, AudioUtilities.durationMillis(vocalsOff),
-										shareCommandVocals, null);
-							}
-						} else {
-							if (on) {
-								commandVocalization = true;
-								if (toBeWritten) {
-									properties.writeProperty("enable command vocalization", "true");
-								}
-								String vocalsOn = "audio/commands/vocals on.wav";
-								AudioUtilities.playAudio(vocalsOn, AudioUtilities.durationMillis(vocalsOn),
-										shareCommandVocals, null);
-							} else {
-								String alreadyOff = "audio/commands/vocals already off.wav";
-								AudioUtilities.playAudio(alreadyOff, AudioUtilities.durationMillis(alreadyOff),
-										shareCommandVocals, null);
-							}
-						}
-					} else {
-						String vocalsConfused = "audio/commands/vocals confused.wav";
-						AudioUtilities.playAudio(vocalsConfused, AudioUtilities.durationMillis(vocalsConfused),
-								shareCommandVocals, null);
-					}
-					break;
-				case STOP:
-					if (commandVocalization) {
-						Command.STOP.playAudio(true, shareCommandVocals);
-					}
-					close();
-					break;
-				}
-
-				System.out.println(input);
-				if (command == Command.REQUEST_SONG || command == Command.SKIP || command == Command.CLEAR
-						|| command == Command.IGNORE_REQUEST) {
-					printSongQueue();
-				} else if (command == Command.ADD_ADMIN || command == Command.REMOVE_ADMIN) {
-					printAdmins(false);
-				} else if (command == Command.BAN_PLAYER || command == Command.UNBAN_PLAYER) {
-					printBannedPlayers();
-				} else if (command == Command.SET_DURATION_LIMIT) {
-					System.out.println("Duration limit: " + durationLimit);
-				} else if (command == Command.SET_PLAYER_SONG_LIMIT) {
-					System.out.println("Player song limit: " + playerSongLimit);
-				} else if (command == Command.SET_QUEUE_LIMIT) {
-					System.out.println("Queue limit: " + queueLimit);
-				}
-			} else if (isAdmin(username) && message.startsWith("!")) {
-				String path = "audio/commands/no command was issued.wav";
-				AudioUtilities.playAudio(path, AudioUtilities.durationMillis(path), false, null);
+	void handleNewInput(Input input) {
+		final Player issuer = input.getAuthor();
+		String commandText = input.getCommand();
+		String argument = getCommandArgument(commandText);
+		Command command = Command.triggeredBy(commandText, isAdmin(issuer), isBanned(issuer));
+		boolean toBeWritten = changesToBeWritten(commandText) && command.propertyUpdate;
+		boolean success = false;
+		if (command != null) {
+			if (command != Command.INCREASE_VOLUME && command != Command.DECREASE_VOLUME) {
+				System.out.println(issuer.getUsername() + ": " + command.syntax + (toBeWritten ? "-w" : "")
+						+ (argument == null ? "" : " " + argument));
 			}
-		} else if (input.equals("Unknown command: increaseVolume")) {
-			AudioUtilities.adjustVolume(volumeIncrement);
-		} else if (input.equals("Unknown command: decreaseVolume")) {
-			AudioUtilities.adjustVolume(-1 * volumeIncrement);
+			switch (command) {
+			case REQUEST_SONG:
+				final String query = normalizeQuery(argument);
+				timeOfLastRequest = timeOfCurrentRequest;
+				timeOfCurrentRequest = Instant.now();
+				Song existing = findSongIfExists(query);
+				final Song song = existing == null ? Song.createSong(query, issuer) : existing.copy(issuer);
+				if (existing == null && !query.isEmpty()) {
+					database.addSongRequest(query, song.getYoutubeId(), issuer.getSteamId3(), isAdmin(issuer),
+							isOwner(issuer), song.usedCachedQuery());
+					final int songRequestId = database.getLatestRequestId();
+					song.setRequestId(songRequestId);
+					if (issuer.getSteamId3() == null) {
+						addPlayerDiscoveryJob(issuer, new Runnable() {
+
+							@Override
+							public void run() {
+								database.updateCell("SONG_REQUEST", "PlayerID", issuer.getSteamId3(), Types.VARCHAR,
+										"ID", String.valueOf(songRequestId), Types.INTEGER);
+							}
+						});
+					}
+				}
+				songRequests.add(0, song);
+				if (song != null && song.getYoutubeId() != null && !query.trim().isEmpty()
+						&& !blockedSongs.contains(song.getYoutubeId())) {
+					handleNewSong(song);
+				}
+				printSongQueue();
+				break;
+			case SKIP:
+				Song temp = currentSong;
+				if (skipCurrentSong()) {
+					database.updateCell("SONG_REQUEST", "Skipped", "true", Types.BOOLEAN, "ID",
+							String.valueOf(temp.getRequestId()), Types.INTEGER);
+					if (commandVocalization) {
+						Command.SKIP.playAudio(true, shareCommandVocals);
+					}
+				}
+				printSongQueue();
+				break;
+			case EXTEND:
+				boolean isACurrentSong = currentSong != null;
+				if (isACurrentSong) {
+					currentSong.extend();
+					database.updateCell("SONG_REQUEST", "Extended", "true", Types.BOOLEAN, "ID",
+							String.valueOf(currentSong.getRequestId()), Types.INTEGER);
+				}
+				if (commandVocalization) {
+					Command.EXTEND.playAudio(isACurrentSong, shareCommandVocals);
+				}
+				break;
+			case CLEAR:
+				clearSongs();
+				if (commandVocalization) {
+					Command.CLEAR.playAudio(true, shareCommandVocals);
+				}
+				break;
+			case ADD_ADMIN:
+				addAdmin(Player.getPlayerFromUsername(argument, false), toBeWritten);
+				if (commandVocalization) {
+					Command.ADD_ADMIN.playAudio(true, shareCommandVocals);
+				}
+				printAdmins(false);
+				break;
+			case REMOVE_ADMIN:
+				success = removeAdmin(Player.getPlayerFromUsername(argument, false), issuer, toBeWritten);
+				if (commandVocalization) {
+					Command.REMOVE_ADMIN.playAudio(success, shareCommandVocals);
+				}
+				printAdmins(false);
+				break;
+			case SET_DURATION_LIMIT:
+				try {
+					int newLimit = Integer.parseInt(argument);
+					boolean changeLimit = newLimit >= 10;
+					if (changeLimit) {
+						durationLimit = newLimit;
+						if (toBeWritten) {
+							properties.writeProperty("duration limit", String.valueOf(newLimit));
+						}
+						success = true;
+					}
+				} catch (NumberFormatException e) {
+				}
+				if (commandVocalization) {
+					Command.SET_DURATION_LIMIT.playAudio(success, shareCommandVocals);
+				}
+				break;
+			case SET_PLAYER_SONG_LIMIT:
+				try {
+					int newLimit = Integer.parseInt(argument);
+					boolean changeLimit = newLimit > 0;
+					if (changeLimit) {
+						playerSongLimit = newLimit;
+						if (toBeWritten) {
+							properties.writeProperty("player song limit", String.valueOf(newLimit));
+						}
+						success = true;
+					}
+				} catch (NumberFormatException e) {
+				}
+				if (commandVocalization) {
+					Command.SET_PLAYER_SONG_LIMIT.playAudio(success, shareCommandVocals);
+				}
+				break;
+			case SET_QUEUE_LIMIT:
+				try {
+					int newLimit = Integer.parseInt(argument);
+					boolean changeLimit = newLimit >= 0;
+					if (changeLimit) {
+						queueLimit = newLimit;
+						if (toBeWritten) {
+							properties.writeProperty("queue limit", String.valueOf(newLimit));
+						}
+						success = true;
+					}
+				} catch (NumberFormatException e) {
+				}
+				if (commandVocalization) {
+					Command.SET_QUEUE_LIMIT.playAudio(success, shareCommandVocals);
+				}
+				break;
+			case IGNORE_REQUEST:
+				if (ignoreRequest(argument) == null) {
+					System.out.println("Failed to ignore request.");
+				} else {
+					printSongQueue();
+				}
+				break;
+			case BAN_PLAYER:
+				success = banPlayer(Player.getPlayerFromUsername(argument, false), toBeWritten);
+				if (commandVocalization) {
+					Command.BAN_PLAYER.playAudio(success, shareCommandVocals);
+				}
+				printBannedPlayers();
+				break;
+			case UNBAN_PLAYER:
+				success = unbanPlayer(Player.getPlayerFromUsername(argument, false), toBeWritten);
+				if (commandVocalization) {
+					Command.UNBAN_PLAYER.playAudio(success, shareCommandVocals);
+				}
+				printBannedPlayers();
+				break;
+			case BLOCK_SONG:
+				Song songToBlock = ignoreRequest(argument);
+				boolean songWasQueued = songToBlock != null;
+				String youtubeId = null;
+				if (songWasQueued) {
+					youtubeId = songToBlock.getYoutubeId();
+				} else {
+					songToBlock = Song.createSong(argument, null);
+					youtubeId = Song.createSong(argument, null).getYoutubeId();
+				}
+				if (youtubeId == null) {
+					System.out.println("Failed to block song.");
+				} else {
+					blockedSongs.add(youtubeId);
+					if (toBeWritten) {
+						properties.addBlockedSong(songToBlock);
+					}
+					System.out.println("Blocked song: " + songToBlock.getTitle());
+				}
+				if (songWasQueued) {
+					printSongQueue();
+				}
+				if (commandVocalization) {
+					Command.BLOCK_SONG.playAudio(youtubeId != null, shareCommandVocals);
+				}
+				break;
+			case UNBLOCK_SONG:
+				success = false;
+				if (argument != null && !argument.isEmpty()) {
+					Song songToUnblock = Song.createSong(argument, null);
+					if (songToUnblock.getYoutubeId() != null) {
+						success = blockedSongs.remove(songToUnblock.getYoutubeId());
+						if (toBeWritten) {
+							success = properties.removeBlockedSong(songToUnblock);
+						}
+						if (success) {
+							System.out.println("Unblocked song: " + songToUnblock.getTitle());
+						}
+					}
+				}
+				if (!success) {
+					System.out.println("Failed to unblock song.");
+				}
+				if (commandVocalization) {
+					Command.UNBLOCK_SONG.playAudio(success, shareCommandVocals);
+				}
+				break;
+			case ENABLE_VOCALS:
+				boolean wasEnabled = commandVocalization;
+				boolean on = argument.trim().equalsIgnoreCase("on");
+				boolean off = argument.trim().equalsIgnoreCase("off");
+				if (on || off) {
+					if (wasEnabled) {
+						if (on) {
+							String alreadyOn = "audio/commands/vocals already on.wav";
+							AudioUtilities.playAudio(alreadyOn, AudioUtilities.durationMillis(alreadyOn),
+									shareCommandVocals, null);
+						} else {
+							commandVocalization = false;
+							if (toBeWritten) {
+								properties.writeProperty("enable command vocalization", "false");
+							}
+							String vocalsOff = "audio/commands/vocals off.wav";
+							AudioUtilities.playAudio(vocalsOff, AudioUtilities.durationMillis(vocalsOff),
+									shareCommandVocals, null);
+						}
+					} else {
+						if (on) {
+							commandVocalization = true;
+							if (toBeWritten) {
+								properties.writeProperty("enable command vocalization", "true");
+							}
+							String vocalsOn = "audio/commands/vocals on.wav";
+							AudioUtilities.playAudio(vocalsOn, AudioUtilities.durationMillis(vocalsOn),
+									shareCommandVocals, null);
+						} else {
+							String alreadyOff = "audio/commands/vocals already off.wav";
+							AudioUtilities.playAudio(alreadyOff, AudioUtilities.durationMillis(alreadyOff),
+									shareCommandVocals, null);
+						}
+					}
+				} else {
+					String vocalsConfused = "audio/commands/vocals confused.wav";
+					AudioUtilities.playAudio(vocalsConfused, AudioUtilities.durationMillis(vocalsConfused),
+							shareCommandVocals, null);
+				}
+				break;
+			case INCREASE_VOLUME:
+				AudioUtilities.adjustVolume(volumeIncrement);
+				break;
+			case DECREASE_VOLUME:
+				AudioUtilities.adjustVolume(-1 * volumeIncrement);
+				break;
+			case STOP:
+				if (commandVocalization) {
+					Command.STOP.playAudio(true, shareCommandVocals);
+				}
+				close();
+				break;
+			}
+		} else if (isAdmin(issuer) && commandText.startsWith("!")) {
+			String audioPath = "audio/commands/no command was issued.wav";
+			AudioUtilities.playAudio(audioPath, AudioUtilities.durationMillis(audioPath), false, null);
 		}
 	}
 
@@ -364,6 +424,7 @@ public class Playlist implements Closeable {
 			public void onDurationLimitReached(Song source) {
 				if (!songQueue.isEmpty() && source.equals(currentSong)) {
 					skipCurrentSong();
+					printSongQueue();
 				}
 			}
 
@@ -371,6 +432,7 @@ public class Playlist implements Closeable {
 			public void onFinish(Song source) {
 				if (source.equals(currentSong)) {
 					skipCurrentSong();
+					printSongQueue();
 				}
 			}
 		});
@@ -382,7 +444,7 @@ public class Playlist implements Closeable {
 				int consecutiveIndex = consecutiveRequesterSongIndex();
 				// Add song to end if requester is same as consecutive requester
 				if (consecutiveIndex == -1
-						|| songQueue.get(consecutiveIndex).getRequester().equalsIgnoreCase(song.getRequester())) {
+						|| songQueue.get(consecutiveIndex).getRequester().equals(song.getRequester())) {
 					songQueue.add(song);
 				} else {
 					songQueue.add(consecutiveIndex, song);
@@ -415,6 +477,42 @@ public class Playlist implements Closeable {
 		return false;
 	}
 
+	private Song ignoreRequest(String argument) {
+		Song ignoredSong = null;
+		try {
+			int requestIndex = Integer.parseInt(argument);
+			if (requestIndex >= 1 && songRequests.size() >= requestIndex) {
+				ignoredSong = songRequests.get(requestIndex - 1);
+			} else if (requestIndex <= 0 && currentSong != null) {
+				ignoredSong = currentSong;
+			}
+		} catch (NumberFormatException e) {
+			if (!songRequests.isEmpty()) {
+				if ((argument == null || argument.equals(""))) {
+					ignoredSong = songRequests.get(0);
+				} else {
+					for (Song queuedSong : songQueue) {
+						if (queuedSong.getQuery().equals(argument)) {
+							ignoredSong = queuedSong;
+							break;
+						}
+					}
+					if (ignoredSong == null && currentSong != null && currentSong.getQuery().equals(argument)) {
+						ignoredSong = currentSong;
+					}
+				}
+			}
+		}
+		if (ignoredSong != null) {
+			songQueue.remove(ignoredSong);
+
+			if (currentSong != null && currentSong.equals(ignoredSong)) {
+				skipCurrentSong();
+			}
+		}
+		return ignoredSong;
+	}
+
 	/**
 	 * Stops the current song and removes all songs from the queue.
 	 */
@@ -427,46 +525,12 @@ public class Playlist implements Closeable {
 	}
 
 	/**
-	 * This method starts the playlist by beginning to listen for new lines in <code>...\tf\console.log</code>, a
-	 * real-time dump of the console log. New lines get sent to {@link #handleNewInput} for parsing.
-	 */
-	public void start() {
-		new Thread(new Runnable() {
-
-			@Override
-			public void run() {
-				File log = new File(logPath);
-				/*
-				 * log.delete(); // Doesn't work if TF2 is running, but that's okay. try { log.createNewFile(); } catch
-				 * (IOException e1) { e1.printStackTrace(); }
-				 */
-				try (BufferedReader reader = new BufferedReader(new FileReader(log))) {
-					while (reader.readLine() != null) {
-					}
-
-					String line = null;
-
-					while (programIsRunning) {
-						if ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
-							handleNewInput(line);
-						}
-
-						Thread.sleep(20);
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
-	}
-
-	/**
 	 * Closes resources, removes key binds, and stops the program.
 	 */
 	public void close() {
+		logReader.close();
 		clearSongs();
-		programIsRunning = false;
-		properties.removeBinds();
+		scriptWriter.removeScripts();
 		database.close();
 	}
 
@@ -478,7 +542,7 @@ public class Playlist implements Closeable {
 	 */
 	private void setCurrentSong(Song song) {
 		currentSong = song;
-		properties.updateCurrentSongBind(song);
+		scriptWriter.updateCurrentSongScript(song);
 	}
 
 	/**
@@ -488,7 +552,7 @@ public class Playlist implements Closeable {
 	 *            - the player in question
 	 * @return a list of songs requested by the specified player that are currently playing or in the queue
 	 */
-	private List<Song> songsFromRequester(String requester) {
+	private List<Song> songsFromRequester(Player requester) {
 		List<Song> songs = new ArrayList<Song>();
 
 		if (currentSong != null && currentSong.getRequester().equals(requester)) {
@@ -569,15 +633,26 @@ public class Playlist implements Closeable {
 	}
 
 	/**
+	 * Checks if the given player is the owner.
+	 * 
+	 * @param player
+	 *            - the player in question
+	 * @return <code>true</code> if the player is the owner; <code>false</code> otherwise
+	 */
+	private boolean isOwner(Player player) {
+		return player.equals(owner);
+	}
+
+	/**
 	 * Checks if the given player is an admin.
 	 * 
-	 * @param username
-	 *            - the name of the player in question
+	 * @param player
+	 *            - the player in question
 	 * @return <code>true</code> if the player is an admin; <code>false</code> otherwise
 	 */
-	private boolean isAdmin(String username) {
-		for (String admin : admins) {
-			if (username.equalsIgnoreCase(admin)) {
+	private boolean isAdmin(Player player) {
+		for (Player admin : admins) {
+			if (player.equals(admin)) {
 				return true;
 			}
 		}
@@ -592,11 +667,22 @@ public class Playlist implements Closeable {
 	 * @param toBeWriten
 	 *            - indicates whether or not the player is to remain an admin after this session
 	 */
-	private void addAdmin(String adminToAdd, boolean toBeWritten) {
+	private void addAdmin(final Player adminToAdd, boolean toBeWritten) {
 		if (!isAdmin(adminToAdd)) {
 			admins.add(adminToAdd);
 			if (toBeWritten) {
-				properties.addAdmin(adminToAdd);
+				Runnable addAdmin = new Runnable() {
+
+					@Override
+					public void run() {
+						properties.addAdmin(adminToAdd);
+					}
+				};
+				if (adminToAdd.getSteamId3() == null) {
+					addPlayerDiscoveryJob(adminToAdd, addAdmin);
+				} else {
+					addAdmin.run();
+				}
 			}
 		}
 	}
@@ -605,7 +691,7 @@ public class Playlist implements Closeable {
 	 * Removes the specified player from the list of admins.
 	 * 
 	 * @param adminToRemove
-	 *            - the player who is no longer an admin
+	 *            - the player who is no longer to be an admin
 	 * @param requester
 	 *            - the player who issued the command
 	 * @param toBeWriten
@@ -613,20 +699,27 @@ public class Playlist implements Closeable {
 	 * @return <code>true</code> if <code>adminToRemove</code> had been an admin and was successfully removed;
 	 *         <code>false</code> otherwise
 	 */
-	private boolean removeAdmin(String adminToRemove, String requester, boolean toBeWritten) {
+	private boolean removeAdmin(final Player adminToRemove, Player requester, boolean toBeWritten) {
+		boolean success = false;
 		// Owners cannot remove themselves, and normal admins cannot remove other admins.
-		if (!adminToRemove.equalsIgnoreCase(owner) || !requester.equalsIgnoreCase(owner)) {
-			for (String admin : admins) {
-				if (admin.equalsIgnoreCase(adminToRemove)) {
-					admins.remove(admin);
-					if (toBeWritten) {
-						properties.removeAdmin(admin);
+		if (!adminToRemove.equals(owner) && requester.equals(owner)) {
+			success = admins.remove(adminToRemove);
+			if (toBeWritten) {
+				Runnable removeAdmin = new Runnable() {
+
+					@Override
+					public void run() {
+						properties.removeAdmin(adminToRemove);
 					}
-					return true;
+				};
+				if (adminToRemove.getSteamId3() == null) {
+					addPlayerDiscoveryJob(adminToRemove, removeAdmin);
+				} else {
+					success = properties.removeAdmin(adminToRemove);
 				}
 			}
 		}
-		return false;
+		return success;
 	}
 
 	/**
@@ -636,10 +729,12 @@ public class Playlist implements Closeable {
 	 *            - the player in question
 	 * @return <code>true</code> if the player is banned; <code>false</code> otherwise
 	 */
-	private boolean isBanned(String player) {
-		for (String bannedPlayer : bannedPlayers) {
-			if (player.equalsIgnoreCase(bannedPlayer)) {
-				return true;
+	private boolean isBanned(Player player) {
+		if (player.getSteamId3() != null) {
+			for (Player bannedPlayer : bannedPlayers) {
+				if (player.equals(bannedPlayer)) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -652,14 +747,33 @@ public class Playlist implements Closeable {
 	 *            - the player to ban
 	 * @param toBeWritten
 	 *            - indicates whether or not the player's ban is to persist after this session
+	 * @return <code>true</code> if the player was successfully banned or had already been banned; <code>false</code>
+	 *         otherwise
 	 */
-	private void banPlayer(String player, boolean toBeWritten) {
+	private boolean banPlayer(final Player player, boolean toBeWritten) {
+		boolean success = true;
 		if (!isBanned(player)) {
-			bannedPlayers.add(player);
-			if (toBeWritten) {
-				properties.addBannedPlayer(player);
+			success = false;
+			if (!player.equals(owner)) {
+				success = true;
+				bannedPlayers.add(player);
+				if (toBeWritten) {
+					Runnable addBannedPlayer = new Runnable() {
+
+						@Override
+						public void run() {
+							properties.addBannedPlayer(player);
+						}
+					};
+					if (player.getSteamId3() == null) {
+						addPlayerDiscoveryJob(player, addBannedPlayer);
+					} else {
+						addBannedPlayer.run();
+					}
+				}
 			}
 		}
+		return success;
 	}
 
 	/**
@@ -671,43 +785,52 @@ public class Playlist implements Closeable {
 	 *            - indicates whether or not this allowance is to persist after this session
 	 * @return <code>true</code> if the specified player had been banned; <code>false</code> otherwise
 	 */
-	private boolean unbanPlayer(String playerToUnban, boolean toBeWritten) {
-		for (String bannedPlayer : bannedPlayers) {
-			if (bannedPlayer.equalsIgnoreCase(playerToUnban)) {
-				bannedPlayers.remove(bannedPlayer);
-				if (toBeWritten) {
-					properties.removeBannedPlayer(bannedPlayer);
+	private boolean unbanPlayer(final Player playerToUnban, boolean toBeWritten) {
+		boolean success = bannedPlayers.remove(playerToUnban);
+		if (toBeWritten) {
+			Runnable removeBannedPlayer = new Runnable() {
+
+				@Override
+				public void run() {
+					properties.removeBannedPlayer(playerToUnban);
 				}
-				return true;
+			};
+			if (playerToUnban.getSteamId3() == null) {
+				addPlayerDiscoveryJob(playerToUnban, removeBannedPlayer);
+			} else {
+				success = properties.removeBannedPlayer(playerToUnban);
 			}
 		}
-		return false;
+		return success;
 	}
 
 	/**
 	 * Prints a readable representation of the song queue.
 	 */
 	private void printSongQueue() {
-		int maxCharacters = 30;
+		int maxCharacters = 40;
 
-		if (currentSong != null) {
-			System.out.println("\nSongs:");
+		System.out.print("\nSongs:");
+		if (currentSong == null) {
+			System.out.println(" none");
+		} else {
+			System.out.println();
 			for (int i = -1; i < songQueue.size(); i++) {
 				Song song = currentSong;
 				if (i > -1) {
 					song = songQueue.get(i);
 				}
 				String title = song.getTitle();
-				String player = song.getRequester();
+				String requester = song.getRequester().getUsername();
 				String outputTitle = title.substring(0,
 						title.length() >= maxCharacters ? maxCharacters : title.length());
-				String outputPlayer = player.substring(0,
-						player.length() >= maxCharacters ? maxCharacters : player.length());
+				String outputPlayer = requester.substring(0,
+						requester.length() >= maxCharacters ? maxCharacters : requester.length());
 				System.out.println("\tTitle: " + outputTitle + ", Seconds: " + song.getDuration() + ", Requester: "
 						+ outputPlayer);
 			}
-			System.out.println("---------------------------------------");
 		}
+		System.out.println("---------------------------------------");
 	}
 
 	/**
@@ -718,16 +841,20 @@ public class Playlist implements Closeable {
 	 */
 	private void printAdmins(boolean separateOwner) {
 		if (separateOwner) {
-			if (owner != null && !owner.isEmpty()) {
-				System.out.println("Owner: " + owner);
+			if (owner != null && owner.getUsername() != null) {
+				System.out.println("Owner: " + owner.getUsername());
 			}
 			admins.remove(owner);
 		}
 		System.out.print("Admins: " + (admins.isEmpty() ? System.lineSeparator() : ""));
 		int i = 0;
-		for (String admin : admins) { // admins is a set, so admins[i] doesn't work
+		for (Player admin : admins) { // admins is a set, so admins[i] doesn't work
 			String comma = i == admins.size() - 1 ? "\n" : ", ";
-			System.out.print(admin + comma);
+			String playerString = admin.getUsername();
+			if (playerString == null) {
+				playerString = admin.getSteamId3();
+			}
+			System.out.print(playerString + comma);
 			i++;
 		}
 		admins.add(owner);
@@ -739,9 +866,13 @@ public class Playlist implements Closeable {
 	private void printBannedPlayers() {
 		System.out.print("Banned players: " + (bannedPlayers.isEmpty() ? System.lineSeparator() : ""));
 		int i = 0;
-		for (String bannedPlayer : bannedPlayers) {
+		for (Player bannedPlayer : bannedPlayers) {
 			String comma = i == bannedPlayers.size() - 1 ? "\n" : ", ";
-			System.out.print(bannedPlayer + comma);
+			String playerString = bannedPlayer.getUsername();
+			if (playerString == null) {
+				playerString = bannedPlayer.getSteamId3();
+			}
+			System.out.print(playerString + comma);
 			i++;
 		}
 	}
@@ -769,6 +900,24 @@ public class Playlist implements Closeable {
 			return songRequests.get(0);
 		}
 		return null;
+	}
+
+	List<Runnable> getPlayerDiscoveryJobs(Player player) {
+		List<Runnable> jobs = playerDiscoveryJobs.get(player);
+		if (jobs == null) {
+			jobs = new ArrayList<Runnable>();
+		}
+		return jobs;
+	}
+
+	private void addPlayerDiscoveryJob(Player player, Runnable runnable) {
+		if (player.getSteamId3() != null) {
+			throw new IllegalArgumentException("Players having a valid steamId3 do not need a discovery job.");
+		}
+		if (playerDiscoveryJobs.get(player) == null) {
+			playerDiscoveryJobs.put(player, new ArrayList<Runnable>());
+		}
+		playerDiscoveryJobs.get(player).add(runnable);
 	}
 
 	/**
@@ -822,7 +971,7 @@ public class Playlist implements Closeable {
 	}
 
 	/**
-	 * An enumeration of the supported TFTunes commands that can be issued via the ingame chat interface.
+	 * An enumeration of the supported SourceRadio commands that can be issued via the ingame console or chat interface.
 	 * 
 	 * @author Joel Christophel
 	 */
@@ -839,8 +988,12 @@ public class Playlist implements Closeable {
 		IGNORE_REQUEST("!ignore", null, true, true, false),
 		BAN_PLAYER("!ban", "audio/commands/banning player.wav", true, true, true),
 		UNBAN_PLAYER("!unban", "audio/commands/unbanning player.wav", true, true, true),
+		BLOCK_SONG("!block-song", "audio/commands/blocking song.wav", true, true, true),
+		UNBLOCK_SONG("!unblock-song", "audio/commands/unblocking song.wav", true, true, true),
 		ENABLE_VOCALS("!vocals", null, true, true, true),
-		STOP("!stop", "audio/commands/stopping tftunes.wav", false, true, false);
+		INCREASE_VOLUME("!increase-volume", null, false, true, false),
+		DECREASE_VOLUME("!decrease-volume", null, false, true, false),
+		STOP("!stop", "audio/commands/stopping sourceradio.wav", false, true, false);
 
 		private String syntax;
 		private String audioPath;

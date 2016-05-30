@@ -1,4 +1,10 @@
-audio/cached songs/!.placeholder
+*.m4a
+/target/
+
+/bin/
+.settings
+.project
+.classpath
 
 # Windows image file caches
 Thumbs.db

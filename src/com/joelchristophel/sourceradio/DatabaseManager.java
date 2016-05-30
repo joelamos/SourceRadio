@@ -1,4 +1,4 @@
-package com.joelchristophel.tftunes;
+package com.joelchristophel.sourceradio;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -37,6 +37,7 @@ class DatabaseManager implements Closeable {
 	private Statement statement;
 	private static DatabaseManager instance;
 	private boolean started;
+	private static final String DATABASE_NAME = "sourceradio";
 
 	/**
 	 * Constructs a {@link DatabaseManager}.
@@ -56,7 +57,7 @@ class DatabaseManager implements Closeable {
 	}
 
 	/**
-	 * Starts the database server. If the server cannot be started, TFTunes will continue to run, but without the
+	 * Starts the database server. If the server cannot be started, SourceRadio will continue to run, but without the
 	 * support of a database.
 	 * 
 	 * @return <code>true</code> if the database was successfully started; <code>false</code> otherwise
@@ -65,24 +66,25 @@ class DatabaseManager implements Closeable {
 		if (!started) {
 			String mysqlPath = properties.get("mysql path");
 			String command = "\"" + mysqlPath + File.separator + "mysqld.exe\"";
-			String loginError = "Could not log in to the MySQL server. Check your credentials and try again or continue to run TFTunes without a database.";
+			String loginError = "Could not log in to the MySQL server. Check your credentials and try again or continue "
+					+ "to run SourceRadio without a database.";
 			try {
 				Runtime.getRuntime().exec(command);
 				String serverName = properties.get("mysql server");
-				String database = "tftunes";
-				String noSsl = "?autoReconnect=true&useSSL=false";
-				String url = "jdbc:mysql://" + serverName + "/" + database + noSsl;
+				String noSsl = "autoReconnect=true&useSSL=false";
+				String encoding = "characterEncoding=UTF-8";
+				String url = "jdbc:mysql://" + serverName + "?" + noSsl + "&" + encoding;
 				String user = properties.get("mysql user");
 				String password = properties.get("mysql password");
 				connection = DriverManager.getConnection(url, user, password);
-				statement = connection.createStatement();
 				initializeDatabase();
 				started = true;
 			} catch (IOException e) {
 				if (mysqlPath.isEmpty()) {
-					System.out.println("A path to MySQL was not provided, so TFTunes will run without a database.");
+					System.out.println("A path to MySQL was not provided, so SourceRadio will run without a database.");
 				} else {
-					System.err.println("The specified path to MySQL is invalid. TFTunes will run without a database.");
+					System.err.println(
+							"The specified path to MySQL is invalid. SourceRadio will run without a database.");
 				}
 			} catch (SQLTimeoutException e) {
 				System.err.println(loginError);
@@ -97,23 +99,40 @@ class DatabaseManager implements Closeable {
 	 * Inserts a row into the SONG table and populates it with the provided data.
 	 * 
 	 * @param youtubeId
-	 *            - the seven-character ID of this song's YouTube video
-	 * @param streamUrl
-	 *            - the URL of this song's audio stream
+	 *            - the ID of this song's YouTube video
 	 * @param title
 	 *            - this song's title
 	 * @param duration
 	 *            - this song's duration in seconds
-	 * @param fileType
-	 *            - the type of file located at <code>streamUrl</code>
 	 * @return <code>true</code> if the insertion was a success; <code>false</code> otherwise
 	 */
-	boolean addSong(String youtubeId, String streamUrl, String title, int duration, String fileType) {
+	boolean addSong(String youtubeId, String title, int duration) {
 		boolean success = false;
 		if (started) {
-			String[] values = { youtubeId, streamUrl, title, String.valueOf(duration), fileType };
-			int[] dataTypes = { Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.INTEGER, Types.VARCHAR };
+			String[] values = { youtubeId, title, String.valueOf(duration), "0" };
+			int[] dataTypes = { Types.VARCHAR, Types.VARCHAR, Types.INTEGER, Types.INTEGER };
 			success = insertRow("SONG", values, dataTypes);
+		}
+		return success;
+	}
+
+	/**
+	 * Inserts a row into the PLAYER table and populates it with the provided data.
+	 * 
+	 * @param player
+	 *            - the player to add
+	 * @return <code>true</code> if the insertion was a success; <code>false</code> otherwise
+	 */
+	boolean addPlayer(Player player, boolean updateUsername) {
+		boolean success = false;
+		if (started) {
+			String[] values = { player.getSteamId3(), player.getUsername() };
+			int[] dataTypes = { Types.VARCHAR, Types.VARCHAR };
+			success = insertRow("PLAYER", values, dataTypes);
+			if (!success && updateUsername) {
+				updateCell("PLAYER", "Username", player.getUsername(), Types.VARCHAR, "SteamID3", player.getSteamId3(),
+						Types.VARCHAR);
+			}
 		}
 		return success;
 	}
@@ -123,8 +142,10 @@ class DatabaseManager implements Closeable {
 	 * 
 	 * @param query
 	 *            - the argument of the song request command
-	 * @param username
-	 *            - the name of the player who made this song request
+	 * @param songId
+	 *            - the Youtube ID of the matched song
+	 * @param steamId3
+	 *            - the steamID3 of the player who made this song request
 	 * @param isAdmin
 	 *            - indicates whether of not the requester is an admin
 	 * @param isOwner
@@ -133,13 +154,16 @@ class DatabaseManager implements Closeable {
 	 *            - indicates whether or not this song's data was acquired from a cached song request
 	 * @return <code>true</code> if the insertion was a success; <code>false</code> otherwise
 	 */
-	boolean addSongRequest(String query, String username, boolean isAdmin, boolean isOwner, boolean usedCachedQuery) {
+	boolean addSongRequest(String query, String songId, String steamId3, boolean isAdmin, boolean isOwner,
+			boolean usedCachedQuery) {
 		boolean success = false;
 		if (started) {
-			String[] values = { null, null, query, null, username, String.valueOf(isAdmin), String.valueOf(isOwner),
-					"false", "false", String.valueOf(usedCachedQuery), "false" };
+			String[] values = { null, null, query, songId, steamId3, Game.getCurrentGame().getFriendlyName(),
+					String.valueOf(isAdmin), String.valueOf(isOwner), "false", "false", String.valueOf(usedCachedQuery),
+					"false" };
 			int[] dataTypes = { Types.INTEGER, Types.TIMESTAMP, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR,
-					Types.BOOLEAN, Types.BOOLEAN, Types.BOOLEAN, Types.BOOLEAN, Types.BOOLEAN, Types.BOOLEAN };
+					Types.VARCHAR, Types.BOOLEAN, Types.BOOLEAN, Types.BOOLEAN, Types.BOOLEAN, Types.BOOLEAN,
+					Types.BOOLEAN };
 			success = insertRow("SONG_REQUEST", values, dataTypes);
 		}
 		return success;
@@ -245,6 +269,31 @@ class DatabaseManager implements Closeable {
 	}
 
 	/**
+	 * Returns the username of the player with the specified steamID3.
+	 * 
+	 * @param steamId3
+	 *            - the steamID3 of a player
+	 * @return the username of the player with the specified steamID3
+	 */
+	String getUsername(String steamId3) {
+		String username = null;
+		if (started) {
+			String sql = "SELECT Username FROM PLAYER WHERE SteamID3 = ?";
+			try {
+				PreparedStatement statement = connection.prepareStatement(sql);
+				setParameter(statement, 1, steamId3, Types.VARCHAR);
+				ResultSet results = statement.executeQuery();
+				if (results.next()) {
+					username = results.getString(1);
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		return username;
+	}
+
+	/**
 	 * Returns a list of YouTube IDs of the songs with the most number of requests.
 	 * 
 	 * @param numberOfSongs
@@ -324,20 +373,20 @@ class DatabaseManager implements Closeable {
 			long earliestMillis = currentMillis
 					- (Integer.parseInt(properties.get("cached query expiration")) * millisInDay);
 			Timestamp earliestTimestamp = new Timestamp(earliestMillis);
-			String sql = "SELECT CurrentTitle, StreamURL, YoutubeID, DurationInSeconds, FileType FROM SONG_REQUEST"
-					+ " JOIN SONG ON SongID = YoutubeID WHERE QUERY = ? && Timestamp >= '" + earliestTimestamp
+			String sql = "SELECT Title, YoutubeID, DurationInSeconds FROM SONG_REQUEST"
+					+ " JOIN SONG ON SongID = YoutubeID WHERE Query = ? && Timestamp >= '" + earliestTimestamp
 					+ "' ORDER BY Timestamp DESC LIMIT 1";
 			try {
 				PreparedStatement statement = connection.prepareStatement(sql);
 				statement.setString(1, query);
 				ResultSet results = statement.executeQuery();
 				if (results.next()) {
-					songData = new String[5];
+					songData = new String[3];
 					for (int i = 0; i < songData.length; i++) {
 						songData[i] = results.getString(i + 1);
 					}
 					// SONG_REQUESTS can have null SongIDs
-					if (songData[2].equalsIgnoreCase("null")) {
+					if (songData[1].equalsIgnoreCase("null")) {
 						songData = null;
 					}
 				}
@@ -409,12 +458,24 @@ class DatabaseManager implements Closeable {
 		boolean success = true;
 		try {
 			String createDatabase = readFile("sql/create database.txt");
-			statement.executeUpdate(createDatabase);
+			connection.createStatement().executeUpdate(createDatabase);
 		} catch (SQLException e) {
 			success = false;
 		}
 		try {
+			connection.setCatalog(DATABASE_NAME);
+			statement = connection.createStatement();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		try {
 			String songTable = readFile("sql/create song table.txt");
+			statement.executeUpdate(songTable);
+		} catch (SQLException e) {
+			success = false;
+		}
+		try {
+			String songTable = readFile("sql/create player table.txt");
 			statement.executeUpdate(songTable);
 		} catch (SQLException e) {
 			success = false;
