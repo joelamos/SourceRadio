@@ -92,7 +92,7 @@
 							<transformers>
 								<transformer
 									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>com.joelchristophel.tftunes.Playlist</mainClass>
+									<mainClass>com.joelchristophel.sourceradio.Playlist</mainClass>
 								</transformer>
 							</transformers>
 						</configuration>
