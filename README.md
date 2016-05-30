@@ -79,7 +79,7 @@ This file contains SourceRadio's main parameters. Property-value pairs are separ
 * <a name="vocals-property"></a>**enable command vocalization** - `true` if there should be an artificial vocalization every time a command is issued; `false` otherwise. See command [!vocals](#vocals-command).
 * **share command vocalizations** - `true` if command vocalizations are to be sent through the owner's microphone to teammates; `false` otherwise
 * **steam path** - The path to Steam's home directory.
-* **steamid3** - The Steam ID used by servers to identify you. This can be left empty unless you have multiple accounts and SourceRadio is choosing the wrong one. There are online tools you can use to help you find your steamID3.
+* **steamid3** - The Steam ID used by servers to identify you. This can be left empty unless you have multiple accounts and SourceRadio is choosing the wrong one. There are online tools you can use to help you find your steamID3. Given the steamID3 `[U:1:193286671]`, you would just use the value `193286671`.
 * **mysql path** - the path to any MySQL subdirectory containing the file `mysqld.exe`.
 * **mysql server** - The MySQL server address. Local servers use `localhost`.
 * **mysql user** - The MySQL username to connect to the server with. MySQL ships with the user `root`.
