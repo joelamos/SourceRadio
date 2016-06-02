@@ -1,3 +1,4 @@
+default game -> 
 duration limit -> 90
 player song limit -> 2
 queue limit -> 4

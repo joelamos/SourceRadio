@@ -32,6 +32,7 @@ class Properties {
 	 */
 	private Map<String, String> properties = new HashMap<String, String>() {
 		{
+			put("default game", null);
 			put("duration limit", null);
 			put("player song limit", null);
 			put("queue limit", null);

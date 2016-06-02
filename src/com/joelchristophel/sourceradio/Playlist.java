@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 
 /**
@@ -52,23 +53,34 @@ public class Playlist implements Closeable {
 	private Instant timeOfCurrentRequest;
 
 	public static void main(String[] args) {
+		System.out.println();
+		System.out.println("**** SourceRadio ****");
+		System.out.println();
 		List<String> argsList = args == null ? new ArrayList<String>() : new ArrayList(Arrays.asList(args));
 		if (argsList.contains("-d")) { // Restore default properties
 			System.out.println("**Restoring default properties**");
 			properties.restoreDefaults();
-		}
-		if (argsList.isEmpty()
-				|| (((argsList.contains("-l") || argsList.contains("-f")) && !argsList.contains("-g")))) {
-			throw new IllegalArgumentException("You must specify which game you are playing.");
-		}
-		if (argsList.contains("-g")) { // Run SourceRadio
+		} else { // Run SourceRadio
+			if (!argsList.contains("-g")) {
+				argsList.add("-g");
+				String defaultGame = properties.get("default game");
+				if (defaultGame == null || defaultGame.isEmpty()) {
+					Scanner scanner = new Scanner(System.in);
+					System.out.println("Enter the game you're playing. (Options: tf2, csgo, l4d2)");
+					if (scanner.hasNext()) {
+						argsList.add(scanner.nextLine());
+					}
+					scanner.close();
+				} else {
+					argsList.add(defaultGame);
+				}
+			}
 			Game game = Game.getGame(argsList.get(argsList.indexOf("-g") + 1));
 			int argIndex = -1;
 			if ((argIndex = argsList.indexOf("-f")) != -1) { // Set the game's directory
 				game.setPath(argsList.get(argIndex + 1));
 			}
 			Playlist playlist = Playlist.getInstance(game);
-			System.out.println("**Running SourceRadio**");
 
 			if ((argIndex = argsList.indexOf("-l")) != -1) { // Specify a different log path for debugging
 				playlist.logReader.setDebugLogPath(argsList.get(argIndex + 1));
