@@ -2,13 +2,13 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.google.api.services.samples.youtube.cmdline</groupId>
-	<artifactId>samples</artifactId>
-	<version>1.0</version>
+	<groupId>com.joechristophel.sourceradio</groupId>
+	<artifactId>sourceradio</artifactId>
+	<version>1.0.0</version>
 	<packaging>jar</packaging>
 
-	<name>youtube-api-cmdline-samples</name>
-	<url>http://maven.apache.org</url>
+	<name>SourceRadio</name>
+	<url>https://github.com/joelamos/SourceRadio</url>
 
 	<properties>
 		<project.youtube.version>v3-rev107-1.18.0-rc</project.youtube.version>
