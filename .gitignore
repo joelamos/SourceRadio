@@ -3,7 +3,7 @@
 *.zip
 *.jar
 /target/
-/SourceRadio
+/installer/
 
 /bin/
 .settings
