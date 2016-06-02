@@ -24,7 +24,7 @@ The selection of music that can be played using SourceRadio is practically infin
 
 ## Installation
 
- 1. Download the ZIP file that is linked to from the [SourceRadio Steam group](http://steamcommunity.com/groups/SourceRadio). Extract the contents and give them a permanent home (e.g. `C:\Program Files (x86)`).
+ 1. Download the ZIP file that is linked to from the [SourceRadio Steam group](http://steamcommunity.com/groups/source-radio). Extract the contents and give them a permanent home (e.g. `C:\Program Files (x86)`).
  1. Find the `.bat` file corresponding to the game you are playing, and create a shortcut of it. Move the shortcut somewhere accessible, as you will need to run it manually whenever you wish to use SourceRadio with that particular game.
  1. Open the Steam library, right-click the game(s) you wish to run SourceRadio alongside. Then click **Properties**. Under the **General** tab, hit **Set Launch Options**. Enter `-condebug` and click OK.
  1. Download [**VB-Audio Virtual Cable**](http://vb-audio.pagesperso-orange.fr/Cable/index.htm). Extract the contents of the ZIP file and give them a permanent home. Open the VBCABLE folder and the run setup exe that corresponds to your system. Install the driver.
