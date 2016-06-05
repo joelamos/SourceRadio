@@ -64,6 +64,7 @@ The various files containing properties and settings for configuring SourceRadio
 
 This file contains SourceRadio's main parameters. Property-value pairs are separated by the delimiter ` -> `. See [this list](https://wiki.teamfortress.com/wiki/Scripting#List_of_key_names) for valid key names for binding. To restore this file's default values, run `restore defaults.bat`.
 
+* **default game** - The game with which SourceRadio will start. If this property is empty, SourceRadio will prompt for a game upon startup. (Options: `tf2`, `csgo`, `l4d2`)
 * <a name="duration-limit-property"></a>**duration limit** - The number of seconds a song is allowed to play if there are songs in the queue. This limit is ignored if no songs are in the queue and will play until it is finished unless it is skipped. See command [!duration-limit](#duration-limit-command).
 * <a name="player-song-limit-property"></a>**player song limit** - The number of songs that a given player is allowed to have playing or in the queue at a time. Subsequent song requests after the limit is reached are ignored. See command [!player-song-limit](#player-song-limit-command).
 * <a name="queue-limit-property"></a>**queue limit** - The total number of songs allowed in the queue at a time. The song that is playing is not included. See command [!queue-limit](#queue-limit-command).
