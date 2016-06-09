@@ -1,4 +1,6 @@
 * eol=crlf
+*.dll text
+*.exe text
 
 # Custom for Visual Studio
 *.cs     diff=csharp
