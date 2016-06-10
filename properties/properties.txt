@@ -22,4 +22,4 @@ mysql password ->
 cached query expiration -> 15
 song cache limit -> 100
 min requests to cache -> 2
-youtube key -> AIzaSyBPokJ3venMWqB_-dH-8s9SkJP0Rsre4mw
+youtube key -> 

@@ -30,8 +30,8 @@ class ScriptWriter {
 	 */
 	void writeScripts() {
 		consoleLogName = LogReader.getInstance().getIntendedLogName();
-		File cfgDirectory = new File(Game.getCurrentGame().getCfgPath());
 
+		File cfgDirectory = new File(Game.getCurrentGame().getCfgPath());
 		if (!(cfgDirectory.exists() && cfgDirectory.getPath().endsWith("cfg"))) {
 			throw new RuntimeException("The path to the game's directory is incorrect.");
 		}
