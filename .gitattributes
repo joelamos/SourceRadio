@@ -1,8 +1,10 @@
 * eol=crlf
 *.dll -text
 *.exe -text
+*.wav -text
 *.dll binary
 *.exe binary
+*.wav binary
 
 # Custom for Visual Studio
 *.cs     diff=csharp
