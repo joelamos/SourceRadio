@@ -4,7 +4,7 @@
 *.jar
 /target/
 /installer/
-
+/libraries/
 /bin/
 .settings
 .project
