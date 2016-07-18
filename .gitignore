@@ -9,6 +9,7 @@
 .settings
 .project
 .classpath
+.gitignore
 
 # Windows image file caches
 Thumbs.db
