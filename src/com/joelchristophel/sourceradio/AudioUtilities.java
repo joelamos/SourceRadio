@@ -97,7 +97,7 @@ class AudioUtilities {
 	 * @return the name of the audio output device to use
 	 */
 	private static String audioOutputToUse(boolean shareWithTeammates) {
-		String audioOut = "CABLE Input";
+		String audioOut = "VB-Audio";
 		if (!shareWithTeammates && (audioOut = AudioUtilities.getDefaultAudioDevice()) == null) {
 			audioOut = "Speakers";
 		}
