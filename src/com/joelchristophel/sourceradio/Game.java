@@ -1,6 +1,7 @@
 package com.joelchristophel.sourceradio;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 enum Game {
 	TEAM_FORTRESS_2("Team Fortress 2", 440, "steamapps\\common\\Team Fortress 2\\tf\\", "hl2.exe", false, true,
@@ -9,8 +10,8 @@ enum Game {
 			"steamapps\\common\\Counter-Strike Global Offensive\\csgo\\", "csgo.exe", true, true,
 			new String[] { "^\\(Terrorist\\)", "^\\(Counter-Terrorist\\)", " @ [ a-zA-Z]+$" },
 			new String[] { "CS:GO", "CSGO", "Counterstrike", "Counter-Strike" }),
-	LEFT_4_DEAD_2("Left 4 Dead 2", 550, "steamapps\\common\\Left 4 Dead 2\\left4dead2\\", "left4dead2.exe", false, false,
-		new String[] { "^\\(Survivor\\)" }, new String[] { "L4D2", "Left for Dead 2" });
+	LEFT_4_DEAD_2("Left 4 Dead 2", 550, "steamapps\\common\\Left 4 Dead 2\\left4dead2\\", "left4dead2.exe", false,
+			false, new String[] { "^\\(Survivor\\)" }, new String[] { "L4D2", "Left for Dead 2" });
 	private static Properties properties = Properties.getInstance();
 	private static Game currentGame;
 	private String friendlyName;
@@ -82,7 +83,7 @@ enum Game {
 		return exeName;
 	}
 
-	String getCfgPath() {
+	String getCfgPath() throws FileNotFoundException {
 		String steamId3 = properties.getOwner().getSteamId3();
 		String cfgPath = null;
 		if (cfgInUserdata) {

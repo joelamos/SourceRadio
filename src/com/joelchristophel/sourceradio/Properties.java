@@ -2,6 +2,7 @@ package com.joelchristophel.sourceradio;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -108,9 +109,17 @@ class Properties {
 		return properties.get(key);
 	}
 
-	Player getOwner() {
+	Player getOwner() throws FileNotFoundException {
 		if (owner == null) {
-			File userdata = new File(properties.get("steam path") + File.separator + "userdata");
+			String steamPath = properties.get("steam path") + File.separator;
+			if (!new File(steamPath).exists()) {
+				throw new FileNotFoundException("Error: Could not find a Steam installation. "
+						+ "Check your Steam path in properties/properties.txt");
+			}
+			File userdata = new File(steamPath + "userdata");
+			if (!userdata.exists()) {
+				throw new FileNotFoundException("Error: Could not find Steam userdata directory: " + userdata.getAbsolutePath());
+			}
 			String steamId3 = properties.get("steamid3");
 			File[] users = userdata.listFiles();
 			File userDirectory = users[0]; // May be wrong account
@@ -157,7 +166,7 @@ class Properties {
 	 * 
 	 * @return a set containing each admin listed in the <code>admins</code> file
 	 */
-	Set<Player> getAdmins() {
+	Set<Player> getAdmins() throws FileNotFoundException {
 		Set<Player> admins = new HashSet<Player>();
 		for (String steamId3 : FileUtilities.getLines(ADMINS_PATH, false)) {
 			if (steamId3.matches("[0-9]+(\\s*//.*)?")) {

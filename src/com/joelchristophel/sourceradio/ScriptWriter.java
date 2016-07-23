@@ -2,6 +2,7 @@ package com.joelchristophel.sourceradio;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,8 +28,9 @@ class ScriptWriter {
 
 	/**
 	 * Writes the scripts required for SourceRadio to run properly.
+	 * @throws FileNotFoundException 
 	 */
-	void writeScripts() {
+	void writeScripts() throws FileNotFoundException {
 		consoleLogName = LogReader.getInstance().getIntendedLogName();
 
 		File cfgDirectory = new File(Game.getCurrentGame().getCfgPath());
@@ -138,8 +140,9 @@ class ScriptWriter {
 	 * 
 	 * @param song
 	 *            - the song that is currently playing
+	 * @throws FileNotFoundException 
 	 */
-	void updateCurrentSongScript(Song song) {
+	void updateCurrentSongScript(Song song) throws FileNotFoundException {
 		String oldFileName = Game.getCurrentGame().getCfgPath() + "current_song.cfg";
 		String tmpFileName = Game.getCurrentGame().getCfgPath() + "current_song_temp.cfg";
 
@@ -164,15 +167,16 @@ class ScriptWriter {
 
 	/**
 	 * Removes the key binds that were written in the {@link #writeBinds} method.
+	 * @throws FileNotFoundException 
 	 */
-	void removeScripts() {
+	void removeScripts() throws FileNotFoundException {
 		String autoExecPath = Game.getCurrentGame().getCfgPath() + "autoexec.cfg";
 		FileUtilities.removeLine(autoExecPath, "exec " + APP_CFG_NAME, true);
 		updateCurrentSongScript(null);
 		FileUtilities.trimFile(autoExecPath);
 	}
 
-	private boolean existingBind(String key) {
+	private boolean existingBind(String key) throws FileNotFoundException {
 		Pattern pattern = Pattern.compile(".*bind \"?" + key + "\"? .*", Pattern.CASE_INSENSITIVE);
 		File cfgDirectory = new File(Game.getCurrentGame().getCfgPath());
 		for (File file : cfgDirectory.listFiles()) {

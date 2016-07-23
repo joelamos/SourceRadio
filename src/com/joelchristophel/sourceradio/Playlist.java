@@ -1,6 +1,8 @@
 package com.joelchristophel.sourceradio;
 
 import java.io.Closeable;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.sql.Types;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
@@ -75,20 +77,30 @@ public class Playlist implements Closeable {
 					argsList.add(defaultGame);
 				}
 			}
+
 			Game game = Game.getGame(argsList.get(argsList.indexOf("-g") + 1));
 			int argIndex = -1;
 			if ((argIndex = argsList.indexOf("-f")) != -1) { // Set the game's directory
 				game.setPath(argsList.get(argIndex + 1));
 			}
-			Playlist playlist = Playlist.getInstance(game);
 
-			if ((argIndex = argsList.indexOf("-l")) != -1) { // Specify a different log path for debugging
-				playlist.logReader.setDebugLogPath(argsList.get(argIndex + 1));
-				System.out.println("DEBUG MODE");
+			try {
+				Playlist playlist = Playlist.getInstance(game);
+				if ((argIndex = argsList.indexOf("-l")) != -1) { // Specify a different log path for debugging
+					playlist.logReader.setDebugLogPath(argsList.get(argIndex + 1));
+					System.out.println("DEBUG MODE");
+				} else {
+					if (!new File(game.getPath()).exists()) {
+						throw new FileNotFoundException(
+								"Error: Could not find a " + game.getFriendlyName() + " installation.");
+					}
+				}
+				System.out.println("Game: " + game.getFriendlyName());
+				System.out.println("Listening for commands...");
+				playlist.start();
+			} catch (FileNotFoundException e) { // If Steam or game directories don't exist
+				System.out.println(e.getMessage());
 			}
-			System.out.println("Game: " + game.getFriendlyName());
-			System.out.println("Listening for commands...");
-			playlist.start();
 		}
 	}
 
@@ -96,8 +108,9 @@ public class Playlist implements Closeable {
 	 * This method is to be used to obtain a {@link Playlist} instance.
 	 * 
 	 * @return a <code>Playlist</code> instance
+	 * @throws FileNotFoundException
 	 */
-	public synchronized static Playlist getInstance(Game game) {
+	public synchronized static Playlist getInstance(Game game) throws FileNotFoundException {
 		Playlist playlist = null;
 		if (instance == null) {
 			playlist = (instance = new Playlist(game));
@@ -112,9 +125,11 @@ public class Playlist implements Closeable {
 	/**
 	 * Constructs a {@link Playlist}.
 	 * 
+	 * @throws FileNotFoundException
+	 * 
 	 * @see #getInstance
 	 */
-	private Playlist(Game game) {
+	private Playlist(Game game) throws FileNotFoundException {
 		super();
 		this.game = game;
 		initialize();
@@ -122,8 +137,10 @@ public class Playlist implements Closeable {
 
 	/**
 	 * Starts the database, initializes instance variables, and writes key binds.
+	 * 
+	 * @throws FileNotFoundException
 	 */
-	private void initialize() {
+	private void initialize() throws FileNotFoundException {
 		Game.setCurrentGame(game);
 		logReader = LogReader.getInstance();
 		database = DatabaseManager.getInstance();
@@ -542,7 +559,11 @@ public class Playlist implements Closeable {
 	public void close() {
 		logReader.close();
 		clearSongs();
-		scriptWriter.removeScripts();
+		try {
+			scriptWriter.removeScripts();
+		} catch (FileNotFoundException e) {
+			System.err.println(e.getMessage());
+		}
 		database.close();
 	}
 
@@ -554,7 +575,11 @@ public class Playlist implements Closeable {
 	 */
 	private void setCurrentSong(Song song) {
 		currentSong = song;
-		scriptWriter.updateCurrentSongScript(song);
+		try {
+			scriptWriter.updateCurrentSongScript(song);
+		} catch (FileNotFoundException e) {
+			System.err.println(e.getMessage());
+		}
 	}
 
 	/**
