@@ -9,9 +9,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -116,21 +118,8 @@ class Properties {
 				throw new FileNotFoundException("Error: Could not find a Steam installation. "
 						+ "Check your Steam path in properties/properties.txt");
 			}
-			File userdata = new File(steamPath + "userdata");
-			if (!userdata.exists()) {
-				throw new FileNotFoundException("Error: Could not find Steam userdata directory: " + userdata.getAbsolutePath());
-			}
-			String steamId3 = properties.get("steamid3");
-			File[] users = userdata.listFiles();
-			File userDirectory = users[0]; // May be wrong account
-			if (steamId3 != null && !steamId3.isEmpty()) {
-				for (File user : users) {
-					if (user.getName().equals(steamId3)) {
-						userDirectory = user;
-						break;
-					}
-				}
-			}
+			File userDirectory = getUserDirectory(steamPath);
+			String steamId3 = userDirectory.getName();
 			String localConfig = userDirectory.getPath() + File.separator + "config" + File.separator
 					+ "localconfig.vdf";
 			List<String> lines = FileUtilities.getLines(localConfig, false);
@@ -161,6 +150,31 @@ class Properties {
 		return owner;
 	}
 
+	private File getUserDirectory(String steamPath) throws FileNotFoundException {
+		File userdata = new File(steamPath + "userdata");
+		if (!userdata.exists()) {
+			throw new FileNotFoundException("Error: Could not find Steam userdata directory: " + userdata.getAbsolutePath());
+		}
+		List<File> users = Arrays.asList(userdata.listFiles());
+		for (Iterator<File> iterator = users.iterator(); iterator.hasNext();) {
+		    File user = iterator.next();
+		    if (!user.getName().matches("[0-9]+")) {
+		        iterator.remove();
+		    }
+		}
+		File userDirectory = users.get(0); // May be wrong account
+		String steamId3 = properties.get("steamid3");
+		if (steamId3 != null && !steamId3.isEmpty()) {
+			for (File user : users) {
+				if (user.getName().equals(steamId3)) {
+					userDirectory = user;
+					break;
+				}
+			}
+		}
+		return userDirectory;
+	}
+	
 	/**
 	 * Returns a set containing each admin listed in the <code>admins</code> file.
 	 * 
