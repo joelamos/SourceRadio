@@ -28,7 +28,8 @@ class ScriptWriter {
 
 	/**
 	 * Writes the scripts required for SourceRadio to run properly.
-	 * @throws FileNotFoundException 
+	 * 
+	 * @throws FileNotFoundException
 	 */
 	void writeScripts() throws FileNotFoundException {
 		consoleLogName = LogReader.getInstance().getIntendedLogName();
@@ -125,11 +126,15 @@ class ScriptWriter {
 			if (!autoExecFile.exists()) {
 				autoExecFile.createNewFile();
 			}
+
 			Files.write(Paths.get(appCfgPath), fileText.getBytes(), StandardOpenOption.APPEND);
+			FileUtilities.removeLine(autoExecPath, "host_writeconfig", true);
 			if (!FileUtilities.fileHasLine(autoExecPath, "exec " + APP_CFG_NAME, true)) {
-				FileUtilities.appendLine(autoExecPath, System.lineSeparator() + System.lineSeparator() + "exec "
-						+ APP_CFG_NAME + System.lineSeparator() + "host_writeconfig");
+				FileUtilities.appendLine(autoExecPath,
+						System.lineSeparator() + System.lineSeparator() + "exec " + APP_CFG_NAME);
 			}
+			FileUtilities.appendLine(autoExecPath,
+					System.lineSeparator() + "host_writeconfig // This must be the last line of the file");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -140,7 +145,7 @@ class ScriptWriter {
 	 * 
 	 * @param song
 	 *            - the song that is currently playing
-	 * @throws FileNotFoundException 
+	 * @throws FileNotFoundException
 	 */
 	void updateCurrentSongScript(Song song) throws FileNotFoundException {
 		String oldFileName = Game.getCurrentGame().getCfgPath() + "current_song.cfg";
@@ -167,7 +172,8 @@ class ScriptWriter {
 
 	/**
 	 * Removes the key binds that were written in the {@link #writeBinds} method.
-	 * @throws FileNotFoundException 
+	 * 
+	 * @throws FileNotFoundException
 	 */
 	void removeScripts() throws FileNotFoundException {
 		String autoExecPath = Game.getCurrentGame().getCfgPath() + "autoexec.cfg";
