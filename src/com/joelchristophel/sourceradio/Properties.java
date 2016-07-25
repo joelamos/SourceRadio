@@ -113,7 +113,7 @@ class Properties {
 
 	Player getOwner() throws FileNotFoundException {
 		if (owner == null) {
-			String steamPath = properties.get("steam path") + File.separator;
+			String steamPath = FileUtilities.normalizeDirectoryPath(properties.get("steam path"));
 			if (!new File(steamPath).exists()) {
 				throw new FileNotFoundException("Error: Could not find a Steam installation. "
 						+ "Check your Steam path in properties/properties.txt");
@@ -153,14 +153,15 @@ class Properties {
 	private File getUserDirectory(String steamPath) throws FileNotFoundException {
 		File userdata = new File(steamPath + "userdata");
 		if (!userdata.exists()) {
-			throw new FileNotFoundException("Error: Could not find Steam userdata directory: " + userdata.getAbsolutePath());
+			throw new FileNotFoundException(
+					"Error: Could not find Steam userdata directory: " + userdata.getAbsolutePath());
 		}
 		List<File> users = Arrays.asList(userdata.listFiles());
 		for (Iterator<File> iterator = users.iterator(); iterator.hasNext();) {
-		    File user = iterator.next();
-		    if (!user.getName().matches("[0-9]+")) {
-		        iterator.remove();
-		    }
+			File user = iterator.next();
+			if (!user.getName().matches("[0-9]+")) {
+				iterator.remove();
+			}
 		}
 		File userDirectory = users.get(0); // May be wrong account
 		String steamId3 = properties.get("steamid3");
@@ -174,7 +175,7 @@ class Properties {
 		}
 		return userDirectory;
 	}
-	
+
 	/**
 	 * Returns a set containing each admin listed in the <code>admins</code> file.
 	 * 

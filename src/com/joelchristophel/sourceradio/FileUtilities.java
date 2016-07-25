@@ -167,4 +167,11 @@ class FileUtilities {
 		}
 		return hasLine;
 	}
+	
+	static String normalizeDirectoryPath(String path) {
+		if (path != null && !path.endsWith(File.separator)) {
+			path += File.separator;
+		}
+		return path;
+	}
 }
