@@ -56,7 +56,9 @@ public class Playlist implements Closeable {
 
 	public static void main(String[] args) {
 		System.out.println();
-		System.out.println("**** SourceRadio ****");
+		String version = Playlist.class.getPackage().getImplementationVersion();
+		version = version == null ? "" : " v" + version;
+		System.out.println("**** SourceRadio" + version + " ****");
 		System.out.println();
 		List<String> argsList = args == null ? new ArrayList<String>() : new ArrayList(Arrays.asList(args));
 		if (argsList.contains("-d")) { // Restore default properties
