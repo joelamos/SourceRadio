@@ -390,7 +390,7 @@ public class Playlist implements Closeable {
 				if (on || off) {
 					if (wasEnabled) {
 						if (on) {
-							String alreadyOn = "audio/commands/vocals already on.wav";
+							String alreadyOn = "resources/audio/vocals already on.wav";
 							AudioUtilities.playAudio(alreadyOn, AudioUtilities.durationMillis(alreadyOn),
 									shareCommandVocals, null);
 						} else {
@@ -398,7 +398,7 @@ public class Playlist implements Closeable {
 							if (toBeWritten) {
 								properties.writeProperty("enable command vocalization", "false");
 							}
-							String vocalsOff = "audio/commands/vocals off.wav";
+							String vocalsOff = "resources/audio/vocals off.wav";
 							AudioUtilities.playAudio(vocalsOff, AudioUtilities.durationMillis(vocalsOff),
 									shareCommandVocals, null);
 						}
@@ -408,17 +408,17 @@ public class Playlist implements Closeable {
 							if (toBeWritten) {
 								properties.writeProperty("enable command vocalization", "true");
 							}
-							String vocalsOn = "audio/commands/vocals on.wav";
+							String vocalsOn = "resources/audio/vocals on.wav";
 							AudioUtilities.playAudio(vocalsOn, AudioUtilities.durationMillis(vocalsOn),
 									shareCommandVocals, null);
 						} else {
-							String alreadyOff = "audio/commands/vocals already off.wav";
+							String alreadyOff = "resources/audio/vocals already off.wav";
 							AudioUtilities.playAudio(alreadyOff, AudioUtilities.durationMillis(alreadyOff),
 									shareCommandVocals, null);
 						}
 					}
 				} else {
-					String vocalsConfused = "audio/commands/vocals confused.wav";
+					String vocalsConfused = "resources/audio/vocals confused.wav";
 					AudioUtilities.playAudio(vocalsConfused, AudioUtilities.durationMillis(vocalsConfused),
 							shareCommandVocals, null);
 				}
@@ -437,7 +437,7 @@ public class Playlist implements Closeable {
 				break;
 			}
 		} else if (isAdmin(issuer) && commandText.startsWith("!")) {
-			String audioPath = "audio/commands/no command was issued.wav";
+			String audioPath = "resources/audio/no command was issued.wav";
 			AudioUtilities.playAudio(audioPath, AudioUtilities.durationMillis(audioPath), false, null);
 		}
 	}
@@ -1024,23 +1024,23 @@ public class Playlist implements Closeable {
 	 */
 	private enum Command {
 		REQUEST_SONG("!song", null, true, false, false),
-		SKIP("!skip", "audio/commands/skipping song.wav", false, true, false),
-		EXTEND("!extend", "audio/commands/extending song.wav", false, true, false),
-		CLEAR("!clear", "audio/commands/clearing playlist.wav", false, true, false),
-		ADD_ADMIN("!add-admin", "audio/commands/adding admin.wav", true, true, true),
-		REMOVE_ADMIN("!remove-admin", "audio/commands/removing admin.wav", true, true, true),
-		SET_DURATION_LIMIT("!duration-limit", "audio/commands/setting duration limit.wav", true, true, true),
-		SET_PLAYER_SONG_LIMIT("!player-song-limit", "audio/commands/setting player song limit.wav", true, true, true),
-		SET_QUEUE_LIMIT("!queue-limit", "audio/commands/setting queue limit.wav", true, true, true),
+		SKIP("!skip", "resources/audio/skipping song.wav", false, true, false),
+		EXTEND("!extend", "resources/audio/extending song.wav", false, true, false),
+		CLEAR("!clear", "resources/audio/clearing playlist.wav", false, true, false),
+		ADD_ADMIN("!add-admin", "resources/audio/adding admin.wav", true, true, true),
+		REMOVE_ADMIN("!remove-admin", "resources/audio/removing admin.wav", true, true, true),
+		SET_DURATION_LIMIT("!duration-limit", "resources/audio/setting duration limit.wav", true, true, true),
+		SET_PLAYER_SONG_LIMIT("!player-song-limit", "resources/audio/setting player song limit.wav", true, true, true),
+		SET_QUEUE_LIMIT("!queue-limit", "resources/audio/setting queue limit.wav", true, true, true),
 		IGNORE_REQUEST("!ignore", null, true, true, false),
-		BAN_PLAYER("!ban", "audio/commands/banning player.wav", true, true, true),
-		UNBAN_PLAYER("!unban", "audio/commands/unbanning player.wav", true, true, true),
-		BLOCK_SONG("!block-song", "audio/commands/blocking song.wav", true, true, true),
-		UNBLOCK_SONG("!unblock-song", "audio/commands/unblocking song.wav", true, true, true),
+		BAN_PLAYER("!ban", "resources/audio/banning player.wav", true, true, true),
+		UNBAN_PLAYER("!unban", "resources/audio/unbanning player.wav", true, true, true),
+		BLOCK_SONG("!block-song", "resources/audio/blocking song.wav", true, true, true),
+		UNBLOCK_SONG("!unblock-song", "resources/audio/unblocking song.wav", true, true, true),
 		ENABLE_VOCALS("!vocals", null, true, true, true),
 		INCREASE_VOLUME("!increase-volume", null, false, true, false),
 		DECREASE_VOLUME("!decrease-volume", null, false, true, false),
-		STOP("!stop", "audio/commands/stopping sourceradio.wav", false, true, false);
+		STOP("!stop", "resources/audio/stopping sourceradio.wav", false, true, false);
 
 		private String syntax;
 		private String audioPath;
@@ -1116,7 +1116,7 @@ public class Playlist implements Closeable {
 		private void playAudio(boolean commandSucceeded, boolean shareWithTeammates) {
 			if (audioPath != null) {
 				if (!commandSucceeded) {
-					String errorPath = "audio/commands/error while.wav";
+					String errorPath = "resources/audio/error while.wav";
 					int errorMillis = AudioUtilities.durationMillis(errorPath) + 200;
 					AudioUtilities.playAudio(errorPath, errorMillis, shareWithTeammates, null);
 					try {
