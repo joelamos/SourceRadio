@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(Antyterrorysta\)
+dead=NIE ŻYJE
+survivorPattern=^\(Ocala
+team=DRUŻYNA
+terroristPattern=^\(Terrorysta\)

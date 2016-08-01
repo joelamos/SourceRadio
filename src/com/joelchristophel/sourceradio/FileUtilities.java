@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 class FileUtilities {
+
 	private FileUtilities() {
 	}
 
@@ -29,10 +30,9 @@ class FileUtilities {
 		if (file.exists()) {
 			try (BufferedReader reader = new BufferedReader(new FileReader(new File(path)));) {
 				String line = null;
-
 				while ((line = reader.readLine()) != null) {
 					if (!line.trim().isEmpty() || includeBlankLines) {
-						lines.add(line);
+						lines.add(line.replace(((char) 65279 + ""), ""));
 					}
 				}
 			} catch (IOException e) {
@@ -167,7 +167,7 @@ class FileUtilities {
 		}
 		return hasLine;
 	}
-	
+
 	static String normalizeDirectoryPath(String path) {
 		if (path != null && !path.endsWith(File.separator)) {
 			path += File.separator;

@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(反恐小組\)
+dead=死亡
+survivorPattern=^\(
+team=團隊
+terroristPattern=^\(恐怖份子\)

@@ -21,7 +21,7 @@ class LogReader implements Closeable {
 	private static final String NO_LAST_LOG = "none";
 	private static final String LOG1_NAME = "console.log";
 	private static final String LOG2_NAME = "console2.log";
-	private static final String MESSAGE_DELIMITER = " : ";
+	private static final String MESSAGE_DELIMITER = ": ";
 	private static final String CHAT_INPUT_ERROR = "A line containing information about a chat message was expected.";
 	private static final Pattern PLAYER_PATTERN = Pattern
 			.compile("#.*?\"(.+)\"\\s+(?:(?:\\[.:.:(.+?)\\]|(STEAM_.:.:.+?))) .*");
@@ -71,15 +71,11 @@ class LogReader implements Closeable {
 						}
 						if ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
 							Input input = null;
-
 							String command = null;
 							if ((command = getCommand(line)) != null) {
 								input = new Input(command.trim(), properties.getOwner(), line);
 							} else if (isChatInput(line)) {
-								String chatMessage = getChatMessage(line).trim();
-								if (chatMessage.startsWith("!")) {
-									input = new Input(chatMessage, getChatSender(line), line);
-								}
+								input = getInput(line);
 							} else if (line.matches(PLAYER_PATTERN.toString())) {
 								Matcher matcher = PLAYER_PATTERN.matcher(line);
 								String steamId = null;
@@ -123,41 +119,47 @@ class LogReader implements Closeable {
 		return reader;
 	}
 
-	/**
-	 * Extracts and returns the chat message from this line of chat input.
-	 * 
-	 * @param chatInput
-	 *            - a line of input from <code>console.log</code> containing information about a chat message
-	 * @return the extracted chat message
-	 */
-	private String getChatMessage(String chatInput) {
+	private Input getInput(String chatInput) {
 		if (!isChatInput(chatInput)) {
 			throw new IllegalArgumentException(CHAT_INPUT_ERROR);
 		}
 		chatInput = chatInput.replace("_", " ");
-		// Assumes the player's username doesn't contain the delimiter
-		return chatInput.substring(chatInput.indexOf(MESSAGE_DELIMITER) + MESSAGE_DELIMITER.length());
+		String chatInputLowercase = chatInput.toLowerCase();
+		String containedCommand = null;
+		for (String command : Playlist.getCommands()) {
+			command = command.toLowerCase();
+			if (chatInputLowercase.contains(command) && (containedCommand == null
+					|| chatInputLowercase.indexOf(command) < chatInputLowercase.indexOf(containedCommand))) {
+				containedCommand = command;
+			}
+		}
+		Input input = null;
+		if (containedCommand != null) {
+			int indexOfDelimiter = chatInput.lastIndexOf(MESSAGE_DELIMITER, chatInputLowercase.indexOf(containedCommand));
+			if (indexOfDelimiter == -1) {
+				indexOfDelimiter = chatInput.indexOf(MESSAGE_DELIMITER);
+			}
+			Player chatSender = getChatSender(chatInput.substring(0, indexOfDelimiter).trim());
+			String chatMessage = chatInput.substring(indexOfDelimiter + MESSAGE_DELIMITER.length()).trim();
+			if (chatMessage.startsWith("!")) {
+				input = new Input(chatMessage, chatSender, chatInput);
+			}
+		}
+		return input;
 	}
 
-	/**
-	 * Extracts and returns the username of the player who sent this chat message.
-	 * 
-	 * @param chatInput
-	 *            - a line of input from <code>console.log</code> containing information about a chat message
-	 * @return the extracted chat message
-	 */
-	Player getChatSender(String chatInput) {
-		if (!isChatInput(chatInput)) {
-			throw new IllegalArgumentException(CHAT_INPUT_ERROR);
-		}
-		// Assumes the player's username doesn't contain the delimiter
-		String username = chatInput.substring(0, chatInput.indexOf(MESSAGE_DELIMITER));
-		if (username.startsWith("*DEAD*")) {
-			username = username.replaceFirst("[*]DEAD[*]", "");
+	private Player getChatSender(String senderChunk) {
+		String username = senderChunk;
+		String dead = StringResources.get("dead");
+		System.out.println(dead);
+		if (username.startsWith("*" + dead + "*")) {
+			username = username.replaceFirst("[*]" + dead + "[*]", "");
 		}
 		for (String pattern : Game.getCurrentGame().getNamePatternsToRemove()) {
-			username = username.replaceAll(pattern, "");
+			username = username.replaceFirst(pattern, "");
+			System.out.println(pattern);
 		}
+		System.out.println(username);
 		Player player = Player.getPlayerFromUsername(username, true);
 		return player;
 	}

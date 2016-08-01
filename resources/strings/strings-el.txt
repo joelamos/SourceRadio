@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(Αντι-τρομοκρατική\)
+dead=ΝΕΚΡΟΣ
+survivorPattern=^\(Survivor\)
+team=ΟΜΑΔΑ
+terroristPattern=^\(Τρομοκράτες\)

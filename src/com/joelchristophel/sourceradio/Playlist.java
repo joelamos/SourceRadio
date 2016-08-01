@@ -1009,6 +1009,14 @@ public class Playlist implements Closeable {
 		return query.toLowerCase(Locale.ENGLISH).trim();
 	}
 
+	public static List<String> getCommands() {
+		List<String> commands = new ArrayList<String>();
+		for (Command command : Command.values()) {
+			commands.add(command.syntax);
+		}
+		return commands;
+	}
+
 	/**
 	 * An enumeration of the supported SourceRadio commands that can be issued via the ingame console or chat interface.
 	 * 

@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(หน่วยต่อต้านผู้ก่อการร้าย\)
+dead=ตาย
+survivorPattern=^\(Survivor\)
+team=ทีม
+terroristPattern=^\(ผู้ก่อการร้าย\)
