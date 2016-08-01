@@ -24,7 +24,7 @@ The selection of music that can be played using SourceRadio is practically infin
 
  1. Join the [SourceRadio Steam group](http://steamcommunity.com/groups/source-radio) and download the  installer from the link on that page.
  1. Run the installer, and carefully follow all of the instructions it gives. *Note: Anti-malware software may flag the installer because it is not from a known source. You may have to temporarily disable this software.*
- 1. Become familiar with all of SourceRadio's [commands](#ingame-commands). Then, open the [properties.txt](#properties.txt) file and ensure that each value is correct for you.
+ 1. Become familiar with all of SourceRadio's [commands](#ingame-commands). Then, open the [properties.txt](#propertiestxt) file and ensure that each value is correct for you.
  1. Run SourceRadio alongside a [supported game](#supported-games) and begin jamming to tunes.
 
 ## Ingame commands
