@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.sql.Types;
 import java.text.DateFormat;
@@ -109,7 +110,7 @@ class Song {
 	 *            - the player who requested this song
 	 * @return the newly created <code>Song</code>
 	 */
-	static Song createSong(String query, Player requester) {
+	static Song createSong(String query, Player requester) throws IOException {
 		Song song = null;
 		if (query == null || query.isEmpty()) {
 			song = new Song(null, null, null, -1, query, requester, false);
@@ -140,26 +141,27 @@ class Song {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					try {
-						BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-						BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-						String title = stdInput.readLine();
-						String streamUrl = stdInput.readLine();
+					BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+					BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-						if (title == null || streamUrl == null) {
-							song = null;
+					String title = stdInput.readLine();
+					String streamUrl = stdInput.readLine();
+
+					if (title == null || streamUrl == null) {
+						song = null;
+					} else {
+						int duration = stringToSeconds(stdInput.readLine());
+						song = new Song(title, streamUrl, youtubeId, duration, query, requester, usedCachedQuery);
+					}
+
+					String error = null;
+					while ((error = stdError.readLine()) != null) {
+						if (error.contains("Unable to download webpage")) {
+							throw new UnknownHostException(error);
 						} else {
-							int duration = stringToSeconds(stdInput.readLine());
-							song = new Song(title, streamUrl, youtubeId, duration, query, requester, usedCachedQuery);
-						}
-
-						String error = null;
-						while ((error = stdError.readLine()) != null) {
 							System.err.println(error);
 						}
-					} catch (IOException e) {
-						e.printStackTrace();
 					}
 				}
 			} else {
@@ -275,31 +277,27 @@ class Song {
 	 *            - the argument of a song request
 	 * @return the YouTube ID of the video best matching the query
 	 */
-	private static String getYoutubeVideo(String query) {
+	private static String getYoutubeVideo(String query) throws IOException {
 		String videoId = null;
 
-		try {
-			YouTube youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(),
-					new HttpRequestInitializer() {
-						public void initialize(HttpRequest request) throws IOException {
-						}
-					}).setApplicationName("sourceradio").build();
+		YouTube youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(),
+				new HttpRequestInitializer() {
+					public void initialize(HttpRequest request) throws IOException {
+					}
+				}).setApplicationName("sourceradio").build();
 
-			YouTube.Search.List search = youtube.search().list("id");
-			search.setKey(properties.get("youtube key"));
-			search.setQ(query);
-			search.setType("video");
-			search.setFields("items(id)");
-			search.setMaxResults(1L);
+		YouTube.Search.List search = youtube.search().list("id");
+		search.setKey(properties.get("youtube key"));
+		search.setQ(query);
+		search.setType("video");
+		search.setFields("items(id)");
+		search.setMaxResults(1L);
 
-			SearchListResponse searchResponse = search.execute();
-			List<SearchResult> searchResultList = searchResponse.getItems();
+		SearchListResponse searchResponse = search.execute();
+		List<SearchResult> searchResultList = searchResponse.getItems();
 
-			if (searchResultList != null && searchResultList.size() > 0) {
-				videoId = searchResultList.get(0).getId().getVideoId();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		if (searchResultList != null && searchResultList.size() > 0) {
+			videoId = searchResultList.get(0).getId().getVideoId();
 		}
 
 		return videoId;

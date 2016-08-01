@@ -3,6 +3,8 @@ package com.joelchristophel.sourceradio;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.UnknownHostException;
 import java.sql.Types;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
@@ -53,6 +55,7 @@ public class Playlist implements Closeable {
 	private List<Song> songQueue = new ArrayList<Song>();
 	private Instant timeOfLastRequest;
 	private Instant timeOfCurrentRequest;
+	private static String CONNECTION_ERROR = "Error: Could not connect to the Internet. Check your connection.";
 
 	public static void main(String[] args) {
 		System.out.println();
@@ -198,27 +201,40 @@ public class Playlist implements Closeable {
 				timeOfLastRequest = timeOfCurrentRequest;
 				timeOfCurrentRequest = Instant.now();
 				Song existing = findSongIfExists(query);
-				final Song song = existing == null ? Song.createSong(query, issuer) : existing.copy(issuer);
-				if (existing == null && !query.isEmpty()) {
-					database.addSongRequest(query, song.getYoutubeId(), issuer.getSteamId3(), isAdmin(issuer),
-							isOwner(issuer), song.usedCachedQuery());
-					final int songRequestId = database.getLatestRequestId();
-					song.setRequestId(songRequestId);
-					if (issuer.getSteamId3() == null) {
-						addPlayerDiscoveryJob(issuer, new Runnable() {
+				try {
+					final Song song = existing == null ? Song.createSong(query, issuer) : existing.copy(issuer);
+					if (existing == null && !query.isEmpty()) {
+						database.addSongRequest(query, song.getYoutubeId(), issuer.getSteamId3(), isAdmin(issuer),
+								isOwner(issuer), song.usedCachedQuery());
+						final int songRequestId = database.getLatestRequestId();
+						song.setRequestId(songRequestId);
+						if (issuer.getSteamId3() == null) {
+							addPlayerDiscoveryJob(issuer, new Runnable() {
 
-							@Override
-							public void run() {
-								database.updateCell("SONG_REQUEST", "PlayerID", issuer.getSteamId3(), Types.VARCHAR,
-										"ID", String.valueOf(songRequestId), Types.INTEGER);
-							}
-						});
+								@Override
+								public void run() {
+									database.updateCell("SONG_REQUEST", "PlayerID", issuer.getSteamId3(), Types.VARCHAR,
+											"ID", String.valueOf(songRequestId), Types.INTEGER);
+								}
+							});
+						}
 					}
-				}
-				songRequests.add(0, song);
-				if (song != null && song.getYoutubeId() != null && !query.trim().isEmpty()
-						&& !blockedSongs.contains(song.getYoutubeId())) {
-					handleNewSong(song);
+					songRequests.add(0, song);
+					if (song != null && song.getYoutubeId() != null && !query.trim().isEmpty()
+							&& !blockedSongs.contains(song.getYoutubeId())) {
+						handleNewSong(song);
+					}
+				} catch (IOException e) {
+					if (e.getMessage() != null && e.getMessage().contains("keyInvalid")) {
+						System.err.println(
+								"Error: SourceRadio\\properties\\properties.txt does not contain a valid YouTube Data API key.");
+					} else if (e instanceof UnknownHostException) {
+						System.err.println(CONNECTION_ERROR);
+					} else {
+						e.printStackTrace();
+					}
+				} catch (NullPointerException e) {
+					e.printStackTrace();
 				}
 				printSongQueue();
 				break;
@@ -337,26 +353,30 @@ public class Playlist implements Closeable {
 				printBannedPlayers();
 				break;
 			case BLOCK_SONG:
-				Song songToBlock = ignoreRequest(argument);
-				boolean songWasQueued = songToBlock != null;
 				String youtubeId = null;
-				if (songWasQueued) {
-					youtubeId = songToBlock.getYoutubeId();
-				} else {
-					songToBlock = Song.createSong(argument, null);
-					youtubeId = Song.createSong(argument, null).getYoutubeId();
-				}
-				if (youtubeId == null) {
-					System.out.println("Failed to block song.");
-				} else {
-					blockedSongs.add(youtubeId);
-					if (toBeWritten) {
-						properties.addBlockedSong(songToBlock);
+				try {
+					Song songToBlock = ignoreRequest(argument);
+					boolean songWasQueued = songToBlock != null;
+					if (songWasQueued) {
+						youtubeId = songToBlock.getYoutubeId();
+					} else {
+						songToBlock = Song.createSong(argument, null);
+						youtubeId = Song.createSong(argument, null).getYoutubeId();
 					}
-					System.out.println("Blocked song: " + songToBlock.getTitle());
-				}
-				if (songWasQueued) {
-					printSongQueue();
+					if (youtubeId == null) {
+						System.out.println("Failed to block song.");
+					} else {
+						blockedSongs.add(youtubeId);
+						if (toBeWritten) {
+							properties.addBlockedSong(songToBlock);
+						}
+						System.out.println("Blocked song: " + songToBlock.getTitle());
+					}
+					if (songWasQueued) {
+						printSongQueue();
+					}
+				} catch (IOException e) {
+					System.err.println(CONNECTION_ERROR);
 				}
 				if (commandVocalization) {
 					Command.BLOCK_SONG.playAudio(youtubeId != null, shareCommandVocals);
@@ -364,20 +384,24 @@ public class Playlist implements Closeable {
 				break;
 			case UNBLOCK_SONG:
 				success = false;
-				if (argument != null && !argument.isEmpty()) {
-					Song songToUnblock = Song.createSong(argument, null);
-					if (songToUnblock.getYoutubeId() != null) {
-						success = blockedSongs.remove(songToUnblock.getYoutubeId());
-						if (toBeWritten) {
-							success = properties.removeBlockedSong(songToUnblock);
-						}
-						if (success) {
-							System.out.println("Unblocked song: " + songToUnblock.getTitle());
+				try {
+					if (argument != null && !argument.isEmpty()) {
+						Song songToUnblock = Song.createSong(argument, null);
+						if (songToUnblock.getYoutubeId() != null) {
+							success = blockedSongs.remove(songToUnblock.getYoutubeId());
+							if (toBeWritten) {
+								success = properties.removeBlockedSong(songToUnblock);
+							}
+							if (success) {
+								System.out.println("Unblocked song: " + songToUnblock.getTitle());
+							}
 						}
 					}
-				}
-				if (!success) {
-					System.out.println("Failed to unblock song.");
+					if (!success) {
+						System.out.println("Failed to unblock song.");
+					}
+				} catch (IOException e) {
+					System.err.println(CONNECTION_ERROR);
 				}
 				if (commandVocalization) {
 					Command.UNBLOCK_SONG.playAudio(success, shareCommandVocals);
