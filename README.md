@@ -15,23 +15,17 @@ The selection of music that can be played using SourceRadio is practically infin
 ## System requirements
 
 * SourceRadio was developed to run on **Windows Vista** and above.
-* Must have **Java 8 or above** installed. Download [here](https://java.com/en/).
 * Must have **Microsoft .NET Framework 4.5 or above** installed. Download [here](https://www.microsoft.com/en-us/download/details.aspx?id=30653).
 * A **good, low-latency Internet connection**. A bad Internet connection may cause SourceRadio to crash. It may also provide an unpleasant listening experience for teammates.
-* Ideally, **several gigabytes of storage** are available for caching the most-requested songs, although it is possible to run SourceRadio without caching songs.
 
 **Note**: A physical microphone is not required for sharing music with teammates.
 
-## Installation
+## Installation & usage
 
- 1. Download the ZIP file that is linked to from the [SourceRadio Steam group](http://steamcommunity.com/groups/source-radio). Extract the contents and give them a permanent home (e.g. `C:\Program Files (x86)`).
- 1. Find the `.bat` file corresponding to the game you are playing, and create a shortcut of it. Move the shortcut somewhere accessible, as you will need to run it manually whenever you wish to use SourceRadio with that particular game.
- 1. Open the Steam library, right-click the game(s) you wish to run SourceRadio alongside. Then click **Properties**. Under the **General** tab, hit **Set Launch Options**. Enter `-condebug` and click OK.
- 1. Download [**VB-Audio Virtual Cable**](http://vb-audio.pagesperso-orange.fr/Cable/index.htm). Extract the contents of the ZIP file and give them a permanent home. Open the VBCABLE folder and the run setup exe that corresponds to your system. Install the driver.
- 1. Navigate to the sound options from the Windows Control Panel. Click on the **Recording** tab, select **CABLE Output** (reboot computer if missing), and click **Set Default**. Next, right-click CABLE Output, and click **Properties**. Click the **Listen** tab and check **Listen to this device**. Apply all changes. *Note: You will have to reset your microphone as default when you wish to use it.*
- 1. Download [**XAMPP**](https://www.apachefriends.org/index.html). The recommended components for SourceRadio are **Apache**, **MySQL**, **PHP**, and **phpMyAdmin**. Once you've finished installing XAMPP, navigate to `...\xampp\mysql\bin` and ensure the correct path to this directory is listed in `...\SourceRadio\properties\properties.txt` under `mysql path`.
- 1. You must create a Google account if you do not already have one. Then visit [Google APIs](https://console.developers.google.com/apis/library) and click **Select a Project > Create a project**. Set the project's name to *SourceRadio*, avoid spam emails, and agree to the Terms of Service. Then click Create. Next click **YouTube Data API** and hit **Enable**. Now click **Credentials > Create credentials > API key > Server key**. Name it *SourceRadio*, leave the second field blank, and click **Create**. Now copy your API key, navigate to ...\SourceRadio\properties\properties.txt, paste the key after `youtube key -> `, and save the file. Leave the properties file open as you read the [Properties](#properties) section. Change any properties as you see fit.
- 1. To run SourceRadio, find and execute the `.bat` file corresponding to the game you wish to play (e.g. `run with tf2.bat`). See the next section to get an idea of what commands you can send to SourceRadio.
+ 1. Join the [SourceRadio Steam group](http://steamcommunity.com/groups/source-radio) and download the  installer from the link on that page.
+ 1. Run the installer, and carefully follow all of the instructions it gives. *Note: Anti-malware software may flag the installer because it is not from a known source. You may have to temporarily disable this software.*
+ 1. Become familiar with all of SourceRadio's [commands](#ingame-commands). Then, open the [properties.txt](#properties.txt) file and ensure that each value is correct for you.
+ 1. Run SourceRadio alongside a [supported game](#supported-games) and begin jamming to tunes.
 
 ## Ingame commands
 
@@ -133,8 +127,9 @@ This file should contain a list of the YouTube IDs for each song you wish to blo
 * [MySQL Java connector](https://dev.mysql.com/downloads/connector/) - a standard database driver that grants the ability to use MySQL with applications.
 
 ## FAQs
-#### Why won't SourceRadio start again after I've run it once?
-You may have forgotten to use the [!stop command](#stop-command) after running SourceRadio the last time. To terminate the old process, go to the **Task Manager**, and make sure it is showing **More details**. Then select **Java** and click **End task**.
+
+#### Why can't I run the installer? / / My computer thinks this a virus!
+Some anti-malware software may flag the installer because it comes from an unknown source. You may have to temporarily disable this software in order.
 
 #### Why does music keep playing after I've finished?
 You most likely forgot to use the [!stop command](#stop-command) when you finished. Whatever the reason, you can stop the audio playback by going to the **Task Manager**, clicking **More details**, selecting **AudioController.exe**, and clicking **End task**.
