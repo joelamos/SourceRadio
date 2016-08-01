@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(Counter-Teroristé\)
+dead=MRTVÝ
+survivorPattern=^\(P
+team=TÝM
+terroristPattern=^\(Teroristé\)

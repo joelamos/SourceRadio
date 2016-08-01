@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(Terror-elhárító\)
+dead=HALOTT
+survivorPattern=^\(Túlél
+team=CSAPAT
+terroristPattern=^\(Terrorista\)

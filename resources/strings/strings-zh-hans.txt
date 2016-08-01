@@ -1,0 +1,4 @@
+﻿counterTerroristPattern=^\(反恐精英\)
+dead=死亡
+team=团队
+terroristPattern=^\(恐怖分子\)

@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(erikoissotilas\)
+dead=KUOLLUT
+survivorPattern=^\(Selviytynyt\)
+team=TIIMI
+terroristPattern=^\(terroristi\)

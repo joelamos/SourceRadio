@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(Anti-Terrorist[a|i]\)
+dead=MORTO
+survivorPattern=^\(Survivor\)
+team=SQUADRA
+terroristPattern=^\(Terrorist[a|i]\)

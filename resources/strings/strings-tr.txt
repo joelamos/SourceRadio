@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(Anti-Terörist\)
+dead=ÖLÜ
+survivorPattern=^\(Sa
+team=TAKIM
+terroristPattern=^\(Terörist\)

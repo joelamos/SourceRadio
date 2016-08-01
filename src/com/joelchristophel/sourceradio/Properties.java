@@ -51,6 +51,7 @@ class Properties {
 			put("enable command vocalization", null);
 			put("share command vocalizations", null);
 			put("steam path", null);
+			put("steam locale", null);
 			put("steamid3", null);
 			put("mysql path", null);
 			put("mysql server", null);

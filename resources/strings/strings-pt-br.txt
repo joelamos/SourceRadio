@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(Contraterrorista\)
+dead=MORTO(A)
+survivorPattern=^\(Sobrevivente\)
+team=EQUIPE
+terroristPattern=^\(Terrorista\)

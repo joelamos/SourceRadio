@@ -1,0 +1,5 @@
+﻿counterTerroristPattern=^\(Спецназовец\)
+dead=МЕРТВ
+survivorPattern=^\(
+team=Команде
+terroristPattern=^\(Террорист\)

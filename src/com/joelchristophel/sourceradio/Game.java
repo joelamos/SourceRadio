@@ -5,13 +5,14 @@ import java.io.FileNotFoundException;
 
 enum Game {
 	TEAM_FORTRESS_2("Team Fortress 2", 440, "steamapps\\common\\Team Fortress 2\\tf\\", "hl2.exe", false, true,
-			new String[] { "^\\(TEAM\\)" }, new String[] { "TF2" }),
+			new String[] { "^\\(" + StringResources.get("team") + "\\)" }, new String[] { "TF2" }),
 	COUNTERSTRIKE_GLOBAL_OFFENSIVE("Counter-Strike: Global Offensive", 730,
-			"steamapps\\common\\Counter-Strike Global Offensive\\csgo\\", "csgo.exe", true, true,
-			new String[] { "^\\(Terrorist\\)", "^\\(Counter-Terrorist\\)", " @ [ a-zA-Z]+$" },
+			"steamapps\\common\\Counter-Strike Global Offensive\\csgo\\", "csgo.exe", true,
+			true, new String[] { StringResources.get("terroristPattern"),
+					StringResources.get("counterTerroristPattern"), " @ .+$" },
 			new String[] { "CS:GO", "CSGO", "Counterstrike", "Counter-Strike" }),
 	LEFT_4_DEAD_2("Left 4 Dead 2", 550, "steamapps\\common\\Left 4 Dead 2\\left4dead2\\", "left4dead2.exe", false,
-			false, new String[] { "^\\(Survivor\\)" }, new String[] { "L4D2", "Left for Dead 2" });
+			false, new String[] { StringResources.get("survivorPattern") }, new String[] { "L4D2", "Left for Dead 2" });
 	private static Properties properties = Properties.getInstance();
 	private static Game currentGame;
 	private String friendlyName;
