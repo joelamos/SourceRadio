@@ -14,6 +14,7 @@ volume increment -> 10
 enable command vocalization -> true
 share command vocalizations -> false
 steam path -> C:\Program Files (x86)\Steam
+steam locale -> 
 steamid3 -> 
 mysql path -> C:\xampp\mysql\bin
 mysql server -> localhost
