@@ -2,4 +2,4 @@
 dead=MORT
 survivorPattern=^\(Supravie
 team=ECHIPĂ
-terroristPattern=^\(Terorist)
+terroristPattern=^\(Terorist\)
