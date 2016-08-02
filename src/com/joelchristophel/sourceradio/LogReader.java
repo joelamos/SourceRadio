@@ -151,15 +151,12 @@ class LogReader implements Closeable {
 	private Player getChatSender(String senderChunk) {
 		String username = senderChunk;
 		String dead = StringResources.get("dead");
-		System.out.println(dead);
 		if (username.startsWith("*" + dead + "*")) {
 			username = username.replaceFirst("[*]" + dead + "[*]", "");
 		}
 		for (String pattern : Game.getCurrentGame().getNamePatternsToRemove()) {
 			username = username.replaceFirst(pattern, "");
-			System.out.println(pattern);
 		}
-		System.out.println(username);
 		Player player = Player.getPlayerFromUsername(username, true);
 		return player;
 	}
