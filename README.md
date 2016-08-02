@@ -129,7 +129,7 @@ This file should contain a list of the YouTube IDs for each song you wish to blo
 ## FAQs
 
 #### Why can't I run the installer? / / My computer thinks this a virus!
-Some anti-malware software may flag the installer because it comes from an unknown source. You may have to temporarily disable this software in order.
+Some anti-malware software may flag the installer because it comes from an unknown source. You may have to temporarily disable this software in order to run the installer.
 
 #### Why does music keep playing after I've finished?
 You most likely forgot to use the [!stop command](#stop-command) when you finished. Whatever the reason, you can stop the audio playback by going to the **Task Manager**, clicking **More details**, selecting **AudioController.exe**, and clicking **End task**.
