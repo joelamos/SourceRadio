@@ -157,7 +157,7 @@ class Properties {
 			throw new FileNotFoundException(
 					"Error: Could not find Steam userdata directory: " + userdata.getAbsolutePath());
 		}
-		List<File> users = Arrays.asList(userdata.listFiles());
+		List<File> users = new ArrayList<File>(Arrays.asList(userdata.listFiles()));
 		for (Iterator<File> iterator = users.iterator(); iterator.hasNext();) {
 			File user = iterator.next();
 			if (!user.getName().matches("[0-9]+")) {
