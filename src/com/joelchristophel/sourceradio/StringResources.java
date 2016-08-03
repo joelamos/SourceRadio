@@ -25,7 +25,7 @@ public class StringResources extends ListResourceBundle {
 		String[][] contents = new String[lines.size()][2];
 		for (int i = 0; i < contents.length; i++) {
 			String[] chunks = lines.get(i).split("=");
-			contents[i][0] = chunks[0];
+			contents[i][0] = chunks[0].replaceAll("[^a-zA-Z0-9_]+", "");
 			contents[i][1] = chunks[1];
 		}
 		return contents;

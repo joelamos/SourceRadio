@@ -32,7 +32,7 @@ class FileUtilities {
 				String line = null;
 				while ((line = reader.readLine()) != null) {
 					if (!line.trim().isEmpty() || includeBlankLines) {
-						lines.add(line.replace(((char) 65279 + ""), ""));
+						lines.add(line);
 					}
 				}
 			} catch (IOException e) {
