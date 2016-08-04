@@ -81,7 +81,7 @@ This file contains SourceRadio's main parameters. Property-value pairs are separ
 * **mysql user** - The MySQL username to connect to the server with. MySQL ships with the user `root`.
 * **mysql password** - The password for the above MySQL user. The default password for `root` is empty.
 * **cached query expiration** - The number of days after which a cached mapping from a song request to a YouTube video expires. This gives new videos a chance for discovery.
-* **song cache limit** - The number of most-requested songs to store on the owner's computer. Approximately 4.5 GB of storage required per 100 songs.
+* **song cache limit** - The number of most-requested songs to store on the owner's computer. Approximately 4 GB of storage required per 100 songs.
 * **min requests to cache** - The minimum number of times a song must be requested before it is stored on the owner's computer.
 * **youtube key** - A key necessary for gaining access to the YouTube Data API. Instructions on obtaining a key can be found within the installer.
 
