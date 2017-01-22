@@ -50,10 +50,15 @@ enum Game {
 
 	private static boolean isNameForGame(String name, Game game) {
 		boolean isNameForGame = false;
-		for (String nameVariation : game.getNameVariations()) {
-			if (name.trim().equalsIgnoreCase(nameVariation)) {
-				isNameForGame = true;
-				break;
+		name = name.trim().toLowerCase();
+		if (name.equals(game.getFriendlyName().toLowerCase())) {
+			isNameForGame = true;
+		} else {
+			for (String nameVariation : game.getNameVariations()) {
+				if (name.equals(nameVariation.toLowerCase())) {
+					isNameForGame = true;
+					break;
+				}
 			}
 		}
 		return isNameForGame;
