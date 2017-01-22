@@ -73,10 +73,14 @@ public class Playlist implements Closeable {
 				String defaultGame = properties.get("default game");
 				if (defaultGame == null || defaultGame.isEmpty()) {
 					Scanner scanner = new Scanner(System.in);
-					System.out.println("Enter the game you're playing. (Options: tf2, csgo, l4d2)");
-					if (scanner.hasNext()) {
-						argsList.add(scanner.nextLine());
+					Game game = null;
+					while (game == null) {
+						System.out.println("Enter the game you're playing. (Options: tf2, csgo, l4d2)");
+						if (scanner.hasNext()) {
+							game = Game.getGame(scanner.nextLine());
+						}
 					}
+					argsList.add(game.getFriendlyName());
 					scanner.close();
 				} else {
 					argsList.add(defaultGame);
