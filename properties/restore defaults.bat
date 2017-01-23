@@ -1,2 +1,2 @@
 cd ..\
-java -jar TFTunes.jar -d
+java -jar SourceRadio.jar -d
