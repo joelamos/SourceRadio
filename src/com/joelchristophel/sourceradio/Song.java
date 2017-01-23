@@ -15,6 +15,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -125,7 +127,7 @@ class Song {
 			if (cachedAudioPath == null) {
 				boolean usedCachedQuery = false;
 				if (youtubeId == null) {
-					youtubeId = Song.getYoutubeVideo(query);
+					youtubeId = getYoutubeVideo(query);
 				} else {
 					usedCachedQuery = true;
 				}
@@ -278,29 +280,38 @@ class Song {
 	 * @return the YouTube ID of the video best matching the query
 	 */
 	private static String getYoutubeVideo(String query) throws IOException {
-		String videoId = null;
+		String videoId = getYoutubeIdFromUrl(query);
+		if (videoId == null) {
+			YouTube youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(),
+					new HttpRequestInitializer() {
+						public void initialize(HttpRequest request) throws IOException {
+						}
+					}).setApplicationName("sourceradio").build();
+			YouTube.Search.List search = youtube.search().list("id");
+			search.setKey(properties.get("youtube key"));
+			search.setQ(query);
+			search.setType("video");
+			search.setFields("items(id)");
+			search.setMaxResults(1L);
 
-		YouTube youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(),
-				new HttpRequestInitializer() {
-					public void initialize(HttpRequest request) throws IOException {
-					}
-				}).setApplicationName("sourceradio").build();
+			SearchListResponse searchResponse = search.execute();
+			List<SearchResult> searchResultList = searchResponse.getItems();
 
-		YouTube.Search.List search = youtube.search().list("id");
-		search.setKey(properties.get("youtube key"));
-		search.setQ(query);
-		search.setType("video");
-		search.setFields("items(id)");
-		search.setMaxResults(1L);
-
-		SearchListResponse searchResponse = search.execute();
-		List<SearchResult> searchResultList = searchResponse.getItems();
-
-		if (searchResultList != null && searchResultList.size() > 0) {
-			videoId = searchResultList.get(0).getId().getVideoId();
+			if (searchResultList != null && searchResultList.size() > 0) {
+				videoId = searchResultList.get(0).getId().getVideoId();
+			}
 		}
-
 		return videoId;
+	}
+
+	private static String getYoutubeIdFromUrl(String text) {
+		Pattern pattern = Pattern
+				.compile("^(?:http(?:s?):\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([^?\\/]+).*$");
+		Matcher matcher = pattern.matcher(text);
+		if (matcher.find()) {
+			return matcher.group(1);
+		}
+		return null;
 	}
 
 	/**
