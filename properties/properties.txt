@@ -9,6 +9,7 @@ instructions bind -> n
 current song bind -> m
 automic bind -> b
 autostart mic -> true
+reload script bind -> semicolon
 volume up bind -> rightarrow
 volume down bind -> leftarrow
 volume increment -> 10

@@ -100,6 +100,14 @@ class ScriptWriter {
 				throw new RuntimeException("The bind for the always-on microphone command is not valid.");
 			}
 		}
+		String reloadScriptBind = properties.get("reload script bind");
+		if (!reloadScriptBind.isEmpty()) {
+			if(isValidKey(reloadScriptBind)) {
+				fileText += "bind " + reloadScriptBind + " \"exec sourceradio.cfg\"" + System.lineSeparator();
+			} else {
+				throw new RuntimeException("The bind for reloading the script is not valid.");
+			}
+		}
 		String volumeUpBind = properties.get("volume up bind");
 		if (!volumeUpBind.isEmpty()) {
 			if (isValidKey(volumeUpBind)) {
