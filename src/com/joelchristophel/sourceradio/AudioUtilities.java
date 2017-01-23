@@ -30,7 +30,7 @@ class AudioUtilities {
 	 * @param source
 	 *            - a web URL or a path to audio.
 	 * @param duration
-	 *            - the duration in seconds of the audio to be played
+	 *            - the duration in milliseconds of the audio to be played
 	 * @param shareAudio
 	 *            - indicates whether or not the playback is to be local or shared with teammates
 	 * @param writePath
@@ -56,6 +56,22 @@ class AudioUtilities {
 			}
 		}
 		return process;
+	}
+	
+	/**
+	 * Starts playing audio from the specified source. The returned process may be used to kill the audio playback.
+	 * 
+	 * @param source
+	 *            - a web URL or a path to audio.
+	 * @param shareAudio
+	 *            - indicates whether or not the playback is to be local or shared with teammates
+	 * @param writePath
+	 *            - the path to the file where the audio is to be written; <code>null</code> if the audio is not to be
+	 *            written
+	 * @return
+	 */
+	static Process playAudio(String source, boolean shareAudio, String writePath) {
+		return playAudio(source, AudioUtilities.durationMillis(source), shareAudio, writePath);
 	}
 
 	static Process writeAudio(String source, String writePath) {

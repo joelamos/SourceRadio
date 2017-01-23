@@ -63,7 +63,7 @@ public class Playlist implements Closeable {
 		version = version == null ? "" : " v" + version;
 		System.out.println("**** SourceRadio" + version + " ****");
 		System.out.println();
-		List<String> argsList = args == null ? new ArrayList<String>() : new ArrayList(Arrays.asList(args));
+		List<String> argsList = args == null ? new ArrayList<String>() : new ArrayList<String>(Arrays.asList(args));
 		if (argsList.contains("-d")) { // Restore default properties
 			System.out.println("**Restoring default properties**");
 			properties.restoreDefaults();
@@ -419,16 +419,14 @@ public class Playlist implements Closeable {
 					if (wasEnabled) {
 						if (on) {
 							String alreadyOn = "resources/audio/vocals already on.wav";
-							AudioUtilities.playAudio(alreadyOn, AudioUtilities.durationMillis(alreadyOn),
-									shareCommandVocals, null);
+							AudioUtilities.playAudio(alreadyOn, shareCommandVocals, null);
 						} else {
 							commandVocalization = false;
 							if (toBeWritten) {
 								properties.writeProperty("enable command vocalization", "false");
 							}
 							String vocalsOff = "resources/audio/vocals off.wav";
-							AudioUtilities.playAudio(vocalsOff, AudioUtilities.durationMillis(vocalsOff),
-									shareCommandVocals, null);
+							AudioUtilities.playAudio(vocalsOff, shareCommandVocals, null);
 						}
 					} else {
 						if (on) {
@@ -437,18 +435,15 @@ public class Playlist implements Closeable {
 								properties.writeProperty("enable command vocalization", "true");
 							}
 							String vocalsOn = "resources/audio/vocals on.wav";
-							AudioUtilities.playAudio(vocalsOn, AudioUtilities.durationMillis(vocalsOn),
-									shareCommandVocals, null);
+							AudioUtilities.playAudio(vocalsOn, shareCommandVocals, null);
 						} else {
 							String alreadyOff = "resources/audio/vocals already off.wav";
-							AudioUtilities.playAudio(alreadyOff, AudioUtilities.durationMillis(alreadyOff),
-									shareCommandVocals, null);
+							AudioUtilities.playAudio(alreadyOff, shareCommandVocals, null);
 						}
 					}
 				} else {
 					String vocalsConfused = "resources/audio/vocals confused.wav";
-					AudioUtilities.playAudio(vocalsConfused, AudioUtilities.durationMillis(vocalsConfused),
-							shareCommandVocals, null);
+					AudioUtilities.playAudio(vocalsConfused, shareCommandVocals, null);
 				}
 				break;
 			case INCREASE_VOLUME:
@@ -466,7 +461,7 @@ public class Playlist implements Closeable {
 			}
 		} else if (isAdmin(issuer) && commandText.startsWith("!")) {
 			String audioPath = "resources/audio/no command was issued.wav";
-			AudioUtilities.playAudio(audioPath, AudioUtilities.durationMillis(audioPath), false, null);
+			AudioUtilities.playAudio(audioPath, false, null);
 		}
 	}
 
@@ -1153,7 +1148,7 @@ public class Playlist implements Closeable {
 						e.printStackTrace();
 					}
 				}
-				AudioUtilities.playAudio(audioPath, AudioUtilities.durationMillis(audioPath), shareWithTeammates, null);
+				AudioUtilities.playAudio(audioPath, shareWithTeammates, null);
 			}
 		}
 	}
