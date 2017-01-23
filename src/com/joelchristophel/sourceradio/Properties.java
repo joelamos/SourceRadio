@@ -123,21 +123,21 @@ class Properties {
 			String steamId3 = userDirectory.getName();
 			String localConfig = userDirectory.getPath() + File.separator + "config" + File.separator
 					+ "localconfig.vdf";
-			List<String> lines = FileUtilities.getLines(localConfig, false);
+			String[] lines = FileUtilities.getLines(localConfig, false);
 			String username = null;
-			for (int i = 0; i < lines.size(); i++) {
+			for (int i = 0; i < lines.length; i++) {
 				if (username == null) {
-					if (lines.get(i).contains("PersonaName")) {
+					if (lines[i].contains("PersonaName")) {
 						Pattern pattern = Pattern.compile(".*\"(.+)\"\\s*$");
-						Matcher matcher = pattern.matcher(lines.get(i));
+						Matcher matcher = pattern.matcher(lines[i]);
 						if (matcher.find()) {
 							username = matcher.group(1);
 						}
 					}
 				} else {
 					if (steamId3 == null || steamId3.isEmpty()) {
-						if (lines.get(i).matches("\\s*\"name\"\\s*\"" + username + "\"\\s*$")) {
-							steamId3 = lines.get(i - 2).trim().replace("\"", "");
+						if (lines[i].matches("\\s*\"name\"\\s*\"" + username + "\"\\s*$")) {
+							steamId3 = lines[i - 2].trim().replace("\"", "");
 							owner = Player.createPlayer(steamId3, username);
 							break;
 						}
@@ -246,15 +246,15 @@ class Properties {
 	 */
 	void writeProperty(String property, String value) {
 		properties.put(property, value);
-		List<String> lines = FileUtilities.getLines(PROPERTIES_PATH, false);
+		String[] lines = FileUtilities.getLines(PROPERTIES_PATH, false);
 		boolean foundProperty = false;
 		String fileText = "";
-		for (int i = 0; i < lines.size(); i++) {
-			if (lines.get(i).trim().toLowerCase().startsWith(property.toLowerCase())) {
+		for (int i = 0; i < lines.length; i++) {
+			if (lines[i].trim().toLowerCase().startsWith(property.toLowerCase())) {
 				fileText += property + DELIMITER + " " + value + System.lineSeparator();
 				foundProperty = true;
 			} else {
-				fileText += lines.get(i) + System.lineSeparator();
+				fileText += lines[i] + System.lineSeparator();
 			}
 		}
 		if (!foundProperty) {

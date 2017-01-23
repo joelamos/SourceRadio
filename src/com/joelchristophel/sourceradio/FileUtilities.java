@@ -24,7 +24,7 @@ class FileUtilities {
 	 *            - indicates whether or not to include blank lines in list
 	 * @return the lines of the specified file or an empty list if the file was not found
 	 */
-	static List<String> getLines(String path, boolean includeBlankLines) {
+	static String[] getLines(String path, boolean includeBlankLines) {
 		List<String> lines = new ArrayList<String>();
 		File file = new File(path);
 		if (file.exists()) {
@@ -39,11 +39,11 @@ class FileUtilities {
 				e.printStackTrace();
 			}
 		}
-		return lines;
+		return lines.toArray(new String[] {});
 	}
 
 	static boolean fileHasLine(String path, String line, boolean commentAware) {
-		List<String> lines = getLines(path, true);
+		String[] lines = getLines(path, true);
 		boolean hasLine = false;
 		for (String fileLine : lines) {
 			if (fileLine.matches(line + (commentAware ? "(\\s*//.*)?" : ""))) {
@@ -103,10 +103,10 @@ class FileUtilities {
 	 *            - the path to a file
 	 */
 	static void trimFile(String path) {
-		List<String> lines = getLines(path, true);
+		String[] lines = getLines(path, true);
 		int endingBlankLines = 0;
-		for (int i = lines.size() - 1; i >= 0; i--) {
-			if (lines.get(i).trim().isEmpty()) {
+		for (int i = lines.length - 1; i >= 0; i--) {
+			if (lines[i].trim().isEmpty()) {
 				endingBlankLines++;
 			} else {
 				break;
@@ -114,12 +114,12 @@ class FileUtilities {
 		}
 		String trimmedText = "";
 		boolean textHasStarted = false;
-		for (int i = 0; i < lines.size() - endingBlankLines; i++) {
-			if (!lines.get(i).trim().isEmpty()) {
+		for (int i = 0; i < lines.length - endingBlankLines; i++) {
+			if (!lines[i].trim().isEmpty()) {
 				textHasStarted = true;
 			}
 			if (textHasStarted) {
-				trimmedText += lines.get(i) + (i == lines.size() - endingBlankLines - 1 ? "" : System.lineSeparator());
+				trimmedText += lines[i] + (i == lines.length - endingBlankLines - 1 ? "" : System.lineSeparator());
 			}
 		}
 		File file = new File(path);
@@ -145,12 +145,12 @@ class FileUtilities {
 	static boolean removeLine(String path, String line, boolean commentAware) {
 		boolean hasLine = fileHasLine(path, line, commentAware);
 		if (hasLine) {
-			List<String> lines = getLines(path, true);
+			String[] lines = getLines(path, true);
 			if (hasLine) {
 				String text = "";
-				for (int i = 0; i < lines.size(); i++) {
-					if (!lines.get(i).matches(line + (commentAware ? "(\\s*//.*)?" : ""))) {
-						text += lines.get(i) + System.lineSeparator();
+				for (int i = 0; i < lines.length; i++) {
+					if (!lines[i].matches(line + (commentAware ? "(\\s*//.*)?" : ""))) {
+						text += lines[i] + System.lineSeparator();
 					}
 				}
 				if (!text.isEmpty() && text.endsWith(System.lineSeparator())) {

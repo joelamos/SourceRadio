@@ -21,10 +21,10 @@ public class StringResources extends ListResourceBundle {
 	protected Object[][] getContents() {
 		Locale locale = getLocale(Properties.getInstance().get("steam locale"));
 		File stringResource = getResource(locale);
-		List<String> lines = FileUtilities.getLines(stringResource.getAbsolutePath(), false);
-		String[][] contents = new String[lines.size()][2];
+		String[] lines = FileUtilities.getLines(stringResource.getAbsolutePath(), false);
+		String[][] contents = new String[lines.length][2];
 		for (int i = 0; i < contents.length; i++) {
-			String[] chunks = lines.get(i).split("=");
+			String[] chunks = lines[i].split("=");
 			contents[i][0] = chunks[0].replaceAll("[^a-zA-Z0-9_]+", "");
 			contents[i][1] = chunks[1];
 		}
