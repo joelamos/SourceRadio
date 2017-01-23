@@ -9,14 +9,14 @@ class Player {
 	private String username;
 	private static List<Player> players = new ArrayList<Player>();
 
-	private Player(String steamId3, String username) {
-		this.steamId3 = steamId3;
+	private Player(String steamId, String username) {
+		steamId3 = toSteamId3(steamId);
 		this.username = username == null ? null : username.trim();
 	}
 
-	static Player createPlayer(String steamId3, String username) {
-		addPlayer(steamId3, username);
-		return getPlayerFromSteamId3(steamId3);
+	static Player createPlayer(String steamId, String username) {
+		addPlayer(steamId, username);
+		return getPlayerFromSteamId(steamId);
 	}
 
 	static Player getPlayerFromUsername(String username, boolean caseSensitive) {
@@ -35,7 +35,8 @@ class Player {
 		return player;
 	}
 
-	static Player getPlayerFromSteamId3(String steamId3) {
+	static Player getPlayerFromSteamId(String steamId) {
+		String steamId3 = toSteamId3(steamId);
 		Player matchingPlayer = null;
 		for (Player player : players) {
 			if (player.getSteamId3() != null && player.getSteamId3().equals(steamId3)) {
@@ -50,7 +51,8 @@ class Player {
 		return matchingPlayer;
 	}
 
-	static boolean addPlayer(String steamId3, String username) {
+	static boolean addPlayer(String steamId, String username) {
+		String steamId3 = toSteamId3(steamId);
 		username = username.trim();
 		int playersBefore = players.size();
 		if (steamId3 == null) {
@@ -59,7 +61,7 @@ class Player {
 			}
 		} else {
 			if (username == null) {
-				getPlayerFromSteamId3(steamId3);
+				getPlayerFromSteamId(steamId3);
 			} else {
 				boolean matchingIdFound = false;
 				List<Player> incompletePlayersMatchingUsername = new ArrayList<Player>();
@@ -110,6 +112,23 @@ class Player {
 		}
 	}
 
+	private static String toSteamId3(String steamId) {
+		String steamId3 = steamId;
+		String[] chunks = steamId.split(":");
+		if (steamId.startsWith("STEAM_")) {
+			// steamID
+			steamId3 = String.valueOf(Integer.parseInt(chunks[2]) * 2 + Integer.parseInt(chunks[1]));
+		} else if (steamId.startsWith("[U") || steamId.startsWith("U")) {
+			// full steamID3
+			steamId3 = chunks[chunks.length - 1].replace("]", "");
+		} else if (steamId.matches("[0-9]+")) {
+			// steamID64 and partial steamID3
+			long id = Long.parseLong(steamId);
+			steamId3 = Long.toString((((id >> 1) & 0x7FFFFFF) * 2) + (id & 1));
+		}
+		return steamId3;
+	}
+	
 	String getSteamId3() {
 		return steamId3;
 	}

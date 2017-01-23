@@ -86,10 +86,7 @@ class LogReader implements Closeable {
 									steamId3 = matcher.group(2);
 									steamId = matcher.group(3);
 								}
-								if (steamId3 == null) {
-									steamId3 = toSteamId3(steamId);
-								}
-								Player player = Player.createPlayer(steamId3, username);
+								Player player = Player.createPlayer(steamId3 == null ? steamId : steamId3, username);
 								DatabaseManager.getInstance().addPlayer(player, true);
 								for (Runnable job : playlist.getPlayerDiscoveryJobs(player)) {
 									job.run();
@@ -135,7 +132,8 @@ class LogReader implements Closeable {
 		}
 		Input input = null;
 		if (containedCommand != null) {
-			int indexOfDelimiter = chatInput.lastIndexOf(MESSAGE_DELIMITER, chatInputLowercase.indexOf(containedCommand));
+			int indexOfDelimiter = chatInput.lastIndexOf(MESSAGE_DELIMITER,
+					chatInputLowercase.indexOf(containedCommand));
 			if (indexOfDelimiter == -1) {
 				indexOfDelimiter = chatInput.indexOf(MESSAGE_DELIMITER);
 			}
@@ -250,15 +248,6 @@ class LogReader implements Closeable {
 			}
 		}
 		return intendedLogName;
-	}
-
-	private static String toSteamId3(String steamId) {
-		String steamId3 = steamId;
-		if (steamId.startsWith("STEAM_")) {
-			String[] chunks = steamId.split(":");
-			steamId3 = String.valueOf(Integer.parseInt(chunks[2]) * 2 + Integer.parseInt(chunks[1]));
-		}
-		return steamId3;
 	}
 
 	/**

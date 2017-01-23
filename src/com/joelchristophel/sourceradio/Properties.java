@@ -184,9 +184,9 @@ class Properties {
 	 */
 	Set<Player> getAdmins() throws FileNotFoundException {
 		Set<Player> admins = new HashSet<Player>();
-		for (String steamId3 : FileUtilities.getLines(ADMINS_PATH, false)) {
-			if (steamId3.matches("[0-9]+(\\s*//.*)?")) {
-				admins.add(Player.getPlayerFromSteamId3(steamId3.split("\\s*//")[0]));
+		for (String steamId : FileUtilities.getLines(ADMINS_PATH, false)) {
+			if (steamId.matches("[0-9]+(\\s*//.*)?")) {
+				admins.add(Player.getPlayerFromSteamId(steamId.split("\\s*//")[0]));
 			}
 		}
 		admins.add(getOwner());
@@ -202,7 +202,7 @@ class Properties {
 		Set<Player> bannedPlayers = new HashSet<Player>();
 		for (String line : FileUtilities.getLines(BANNED_PLAYERS_PATH, false)) {
 			if (line.matches("[0-9]+(\\s*//.*)?")) {
-				bannedPlayers.add(Player.getPlayerFromSteamId3(line.split("\\s*//")[0]));
+				bannedPlayers.add(Player.getPlayerFromSteamId(line.split("\\s*//")[0]));
 			}
 		}
 		return bannedPlayers;
