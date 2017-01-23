@@ -28,48 +28,20 @@ import java.util.regex.Pattern;
  */
 class Properties {
 
+	private String[] propertyNames = getPropertyNames();
 	/**
 	 * A map of SourceRadio's properties and their values. This should always match the information in
 	 * <code>properties.txt</code> rather than the <code>Playlist's</code> current runtime settings. Changes made by
 	 * player commands often are not meant to persist after the program terminates.
 	 */
-	private Map<String, String> properties = new HashMap<String, String>() {
-		{
-			put("default game", null);
-			put("duration limit", null);
-			put("player song limit", null);
-			put("queue limit", null);
-			put("ignore bind", null);
-			put("skip bind", null);
-			put("instructions", null);
-			put("instructions bind", null);
-			put("current song bind", null);
-			put("automic bind", null);
-			put("volume up bind", null);
-			put("volume down bind", null);
-			put("volume increment", null);
-			put("enable command vocalization", null);
-			put("share command vocalizations", null);
-			put("steam path", null);
-			put("steam locale", null);
-			put("steamid3", null);
-			put("mysql path", null);
-			put("mysql server", null);
-			put("mysql user", null);
-			put("mysql password", null);
-			put("cached query expiration", null);
-			put("song cache limit", null);
-			put("min requests to cache", null);
-			put("youtube key", null);
-		}
-	};
+	private Map<String, String> properties;
 	private static final String DELIMITER = " ->";
 	private static final String PROPERTIES_PATH = "properties/properties.txt";
 	private static final String DEFAULT_PROPERTIES_PATH = "properties/default properties";
 	private static final String ADMINS_PATH = "properties/admins.txt";
 	private static final String BANNED_PLAYERS_PATH = "properties/banned players.txt";
 	private static final String BLOCKED_SONGS_PATH = "properties/blocked songs.txt";
-	private static List<String> propertiesWithoutDefaults;
+	private static String[] propertiesWithoutDefaults;
 	private static Properties instance;
 	private Player owner;
 
@@ -223,7 +195,7 @@ class Properties {
 	 * <code>properties.txt</code>. It also updates the local property map accordingly.
 	 */
 	void restoreDefaults() {
-		List<String> propertiesWithoutDefaults = getPropertiesWithoutDefaults();
+		String[] propertiesWithoutDefaults = getPropertiesWithoutDefaults();
 		Map<String, String> propertiesToMaintain = readProperties(PROPERTIES_PATH, propertiesWithoutDefaults);
 		File properties = new File(PROPERTIES_PATH);
 		properties.delete();
@@ -245,29 +217,31 @@ class Properties {
 	 *            - the new value for the property
 	 */
 	void writeProperty(String property, String value) {
-		properties.put(property, value);
-		String[] lines = FileUtilities.getLines(PROPERTIES_PATH, false);
-		boolean foundProperty = false;
-		String fileText = "";
-		for (int i = 0; i < lines.length; i++) {
-			if (lines[i].trim().toLowerCase().startsWith(property.toLowerCase())) {
-				fileText += property + DELIMITER + " " + value + System.lineSeparator();
-				foundProperty = true;
-			} else {
-				fileText += lines[i] + System.lineSeparator();
+		if (!value.equals(properties.get(property))) {
+			properties.put(property, value);
+			String[] lines = FileUtilities.getLines(PROPERTIES_PATH, false);
+			boolean foundProperty = false;
+			String fileText = "";
+			for (int i = 0; i < lines.length; i++) {
+				if (lines[i].trim().toLowerCase().startsWith(property.toLowerCase())) {
+					fileText += property + DELIMITER + " " + value + System.lineSeparator();
+					foundProperty = true;
+				} else {
+					fileText += lines[i] + System.lineSeparator();
+				}
 			}
+			if (!foundProperty) {
+				fileText += property + DELIMITER + " " + value + System.lineSeparator();
+			}
+			try {
+				File file = new File(PROPERTIES_PATH);
+				file.delete();
+				Files.write(Paths.get(PROPERTIES_PATH), fileText.getBytes(), StandardOpenOption.CREATE);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			FileUtilities.trimFile(PROPERTIES_PATH);
 		}
-		if (!foundProperty) {
-			fileText += property + DELIMITER + " " + value + System.lineSeparator();
-		}
-		try {
-			File file = new File(PROPERTIES_PATH);
-			file.delete();
-			Files.write(Paths.get(PROPERTIES_PATH), fileText.getBytes(), StandardOpenOption.CREATE);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		FileUtilities.trimFile(PROPERTIES_PATH);
 	}
 
 	/**
@@ -360,14 +334,26 @@ class Properties {
 				writeProperty(property, newProperties.get(property));
 			}
 		}
-		properties = readProperties(PROPERTIES_PATH, properties.keySet());
-		List<String> missingProperties = getMissingProperties(properties);
+		properties = readProperties(PROPERTIES_PATH, propertyNames);
+		String[] missingProperties = getMissingProperties(properties);
 		Map<String, String> foundProperties = readProperties(DEFAULT_PROPERTIES_PATH, missingProperties);
 		if (!foundProperties.isEmpty()) {
 			for (String foundProperty : foundProperties.keySet()) {
 				properties.put(foundProperty, foundProperties.get(foundProperty));
 			}
-			appendProperties(foundProperties, PROPERTIES_PATH);
+			String fileText = "";
+			for (int i = 0; i < propertyNames.length; i++) {
+				String seperator = i == propertyNames.length - 1 ? "" : System.lineSeparator();
+				fileText += propertyNames[i] + DELIMITER + " " + properties.get(propertyNames[i]) + seperator;
+			}
+			try {
+				File file = new File(PROPERTIES_PATH);
+				file.delete();
+				Files.write(Paths.get(PROPERTIES_PATH), fileText.getBytes(), StandardOpenOption.CREATE);
+				FileUtilities.trimFile(PROPERTIES_PATH);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -380,7 +366,7 @@ class Properties {
 	 *            - a list of properties to be read from the file
 	 * @return a map of the properties and values read from the file
 	 */
-	private Map<String, String> readProperties(String path, Collection<String> propertiesToRead) {
+	private Map<String, String> readProperties(String path, String[] propertiesToRead) {
 		Map<String, String> properties = new HashMap<String, String>();
 		for (String property : propertiesToRead) {
 			properties.put(property, null);
@@ -415,7 +401,7 @@ class Properties {
 				}
 
 				boolean lineHasProperty = false;
-				for (String property : this.properties.keySet()) {
+				for (String property : propertyNames) {
 					if (line.toLowerCase().startsWith(property + DELIMITER)) {
 						lineHasProperty = true;
 					}
@@ -428,11 +414,6 @@ class Properties {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-		if (path.equals(DEFAULT_PROPERTIES_PATH) && !getMissingProperties(properties).isEmpty()) {
-			throw new RuntimeException("There are missing properties in \"" + filename + "\".");
-		}
-
 		return properties;
 	}
 
@@ -443,14 +424,14 @@ class Properties {
 	 *            - a property-value map
 	 * @return a list of the properties that were mapped to null values
 	 */
-	private static List<String> getMissingProperties(Map<String, String> properties) {
+	private static String[] getMissingProperties(Map<String, String> properties) {
 		List<String> missingProperties = new ArrayList<String>();
 		for (String property : properties.keySet()) {
 			if (properties.get(property) == null) {
 				missingProperties.add(property);
 			}
 		}
-		return missingProperties;
+		return missingProperties.toArray(new String[] {});
 	}
 
 	/**
@@ -479,19 +460,33 @@ class Properties {
 	 * 
 	 * @return a list of properties that do not have default values
 	 */
-	private List<String> getPropertiesWithoutDefaults() {
+	private String[] getPropertiesWithoutDefaults() {
 		if (propertiesWithoutDefaults == null) {
 			List<String> propertiesWithoutDefaults = new ArrayList<String>();
-			Map<String, String> defaultProperties = readProperties(DEFAULT_PROPERTIES_PATH, properties.keySet());
+			Map<String, String> defaultProperties = readProperties(DEFAULT_PROPERTIES_PATH, propertyNames);
 			for (String property : defaultProperties.keySet()) {
 				String value = defaultProperties.get(property);
 				if (value == null || value.trim().equals("")) {
 					propertiesWithoutDefaults.add(property);
 				}
 			}
-			return propertiesWithoutDefaults;
+			return propertiesWithoutDefaults.toArray(new String[] {});
 		} else {
 			return propertiesWithoutDefaults;
 		}
+	}
+
+	private String[] getPropertyNames() {
+		String[] lines = FileUtilities.getLines(DEFAULT_PROPERTIES_PATH, false);
+		List<String> propertyNames = new ArrayList<String>();
+
+		for (String line : lines) {
+			try {
+				propertyNames.add(line.split(DELIMITER)[0].trim());
+			} catch (Exception e) {
+				throw new RuntimeException("The default properties file has been corrupted.");
+			}
+		}
+		return propertyNames.toArray(new String[] {});
 	}
 }
