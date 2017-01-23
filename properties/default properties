@@ -7,6 +7,8 @@ skip bind -> o
 instructions -> Type !song then a song title to auto-play music through my mic.
 instructions bind -> n
 current song bind -> m
+display commands -> true
+alltalk -> false
 automic bind -> b
 autostart mic -> true
 reload script bind -> semicolon

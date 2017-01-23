@@ -270,6 +270,27 @@ public class Playlist implements Closeable {
 					Command.CLEAR.playAudio(true, shareCommandVocals);
 				}
 				break;
+			case ALLTALK:
+				boolean on = argument.trim().equalsIgnoreCase("on");
+				boolean off = argument.trim().equalsIgnoreCase("off");
+				if (on || off) {
+					try {
+						scriptWriter.setAlltalk(on);
+						scriptWriter.writeScripts();
+						scriptWriter.updateCurrentSongScript(currentSong);
+						if (toBeWritten) {
+							properties.writeProperty("alltalk", on + "");
+						}
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					}
+				} else {
+					if (commandVocalization) {
+						String vocalsConfused = "resources/audio/vocals confused.wav";
+						AudioUtilities.playAudio(vocalsConfused, shareCommandVocals, null);
+					}
+				}
+				break;
 			case ADD_ADMIN:
 				addAdmin(Player.getPlayerFromUsername(argument, false), toBeWritten);
 				if (commandVocalization) {
@@ -413,8 +434,8 @@ public class Playlist implements Closeable {
 				break;
 			case ENABLE_VOCALS:
 				boolean wasEnabled = commandVocalization;
-				boolean on = argument.trim().equalsIgnoreCase("on");
-				boolean off = argument.trim().equalsIgnoreCase("off");
+				on = argument.trim().equalsIgnoreCase("on");
+				off = argument.trim().equalsIgnoreCase("off");
 				if (on || off) {
 					if (wasEnabled) {
 						if (on) {
@@ -1050,6 +1071,7 @@ public class Playlist implements Closeable {
 		SKIP("!skip", "resources/audio/skipping song.wav", false, true, false),
 		EXTEND("!extend", "resources/audio/extending song.wav", false, true, false),
 		CLEAR("!clear", "resources/audio/clearing playlist.wav", false, true, false),
+		ALLTALK("!alltalk", null, true, true, true),
 		ADD_ADMIN("!add-admin", "resources/audio/adding admin.wav", true, true, true),
 		REMOVE_ADMIN("!remove-admin", "resources/audio/removing admin.wav", true, true, true),
 		SET_DURATION_LIMIT("!duration-limit", "resources/audio/setting duration limit.wav", true, true, true),

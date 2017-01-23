@@ -15,6 +15,8 @@ class ScriptWriter {
 
 	private static Properties properties = Properties.getInstance();
 	private String consoleLogName;
+	private boolean alltalk = Boolean.parseBoolean(properties.get("alltalk"));
+	private final boolean displayCommands = Boolean.parseBoolean(properties.get("display commands"));
 	private static final String APP_CFG_NAME = "sourceradio.cfg";
 	private static final String[] GENERATED_CFGS = { "config.cfg", "config_default.cfg" };
 	private static final String[] VALID_KEYS = { "escape", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10",
@@ -25,7 +27,7 @@ class ScriptWriter {
 			"pgup", "pgdn", "kp_slash", "kp_multiply", "kp_plus", "kp_minus", "kp_home", "kp_end", "kp_uparrow",
 			"kp_downarrow", "kp_leftarrow", "kp_rightarrow", "kp_pgup", "kp_pgdn", "kp_5", "kp_ins", "kp_enter",
 			"uparrow", "downarrow", "leftarrow", "rightarrow" };
-
+	
 	/**
 	 * Writes the scripts required for SourceRadio to run properly.
 	 * 
@@ -56,9 +58,11 @@ class ScriptWriter {
 			fileText += "alias -statusJump \"-jump\"" + System.lineSeparator();
 		}
 		String ignoreBind = properties.get("ignore bind");
+		String commandVisibility = getCommandVisibility();
+		String infoVisibility = getInfoVisibility();
 		if (!ignoreBind.isEmpty()) {
 			if (isValidKey(ignoreBind)) {
-				fileText += "bind " + ignoreBind + " \"say_team !ignore\"" + System.lineSeparator();
+				fileText += "bind " + ignoreBind + " \"" + commandVisibility + " !ignore\"" + System.lineSeparator();
 			} else {
 				throw new RuntimeException("The bind for the ignore command is not valid.");
 			}
@@ -66,7 +70,7 @@ class ScriptWriter {
 		String skipBind = properties.get("skip bind");
 		if (!skipBind.isEmpty()) {
 			if (isValidKey(skipBind)) {
-				fileText += "bind " + skipBind + " \"say_team !skip\"" + System.lineSeparator();
+				fileText += "bind " + skipBind + " \"" + commandVisibility + " !skip\"" + System.lineSeparator();
 			} else {
 				throw new RuntimeException("The bind for the skip command is not valid.");
 			}
@@ -76,7 +80,7 @@ class ScriptWriter {
 			String instructionsBind = properties.get("instructions bind");
 			if (!instructionsBind.isEmpty()) {
 				if (isValidKey(instructionsBind)) {
-					fileText += "bind " + instructionsBind + " \"say_team " + instructions + "\""
+					fileText += "bind " + instructionsBind + " \"" + infoVisibility + " " + instructions + "\""
 							+ System.lineSeparator();
 				} else {
 					throw new RuntimeException("The bind for the instructions command is not valid.");
@@ -168,7 +172,7 @@ class ScriptWriter {
 				songTitle = simplifySongTitle(song.getTitle());
 				requestedBy = "(Requested by " + song.getRequester().getUsername() + ")";
 			}
-			writer.write("say_team Current song: " + songTitle + " " + requestedBy);
+			writer.write(getInfoVisibility() + " Current song: " + songTitle + " " + requestedBy);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
@@ -191,7 +195,20 @@ class ScriptWriter {
 		updateCurrentSongScript(null);
 		FileUtilities.trimFile(autoExecPath);
 	}
-
+	
+	void setAlltalk(boolean on) {
+		alltalk = on;
+	}
+	
+	String getInfoVisibility() {
+		return alltalk ? "say" : "say_team";
+	}
+	
+	String getCommandVisibility() {
+		String commandVisibility = alltalk ? "say" : "say_team";
+		return displayCommands ? commandVisibility : "";
+	}
+	
 	private boolean existingBind(String key) throws FileNotFoundException {
 		Pattern pattern = Pattern.compile(".*bind \"?" + key + "\"? .*", Pattern.CASE_INSENSITIVE);
 		File cfgDirectory = new File(Game.getCurrentGame().getCfgPath());
