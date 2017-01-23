@@ -116,7 +116,9 @@ class ScriptWriter {
 				throw new RuntimeException("The bind for the volume down command is not valid.");
 			}
 		}
-		fileText += "-voicerecord" + System.lineSeparator() + "+voicerecord" + System.lineSeparator();
+		if (Boolean.parseBoolean(properties.get("autostart mic"))) {
+			fileText += "-voicerecord" + System.lineSeparator() + "+voicerecord" + System.lineSeparator();
+		}
 		fileText += "con_enable 1" + System.lineSeparator();
 		if (Game.getCurrentGame().canChangeLog()) {
 			fileText += "echo Logging to " + consoleLogName + System.lineSeparator() + "con_logfile " + consoleLogName;

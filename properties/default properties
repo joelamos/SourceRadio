@@ -8,6 +8,7 @@ instructions -> Type !song then a song title to auto-play music through my mic.
 instructions bind -> n
 current song bind -> m
 automic bind -> b
+autostart mic -> true
 volume up bind -> rightarrow
 volume down bind -> leftarrow
 volume increment -> 10
