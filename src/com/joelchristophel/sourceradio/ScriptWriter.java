@@ -52,7 +52,7 @@ class ScriptWriter {
 		String fileText = "status" + System.lineSeparator();
 		if (!existingBind("space")) {
 			fileText += "bind space +statusJump" + System.lineSeparator();
-			fileText += "alias +statusJump \"+jump; status;\"" + System.lineSeparator();
+			fileText += "alias +statusJump \"+jump; status; spec_mode;\"" + System.lineSeparator();
 			fileText += "alias -statusJump \"-jump\"" + System.lineSeparator();
 		}
 		String ignoreBind = properties.get("ignore bind");
