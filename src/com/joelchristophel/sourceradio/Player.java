@@ -114,21 +114,23 @@ class Player {
 
 	private static String toSteamId3(String steamId) {
 		String steamId3 = steamId;
-		String[] chunks = steamId.split(":");
-		if (steamId.startsWith("STEAM_")) {
-			// steamID
-			steamId3 = String.valueOf(Integer.parseInt(chunks[2]) * 2 + Integer.parseInt(chunks[1]));
-		} else if (steamId.startsWith("[U") || steamId.startsWith("U")) {
-			// full steamID3
-			steamId3 = chunks[chunks.length - 1].replace("]", "");
-		} else if (steamId.matches("[0-9]+")) {
-			// steamID64 and partial steamID3
-			long id = Long.parseLong(steamId);
-			steamId3 = Long.toString((((id >> 1) & 0x7FFFFFF) * 2) + (id & 1));
+		if (steamId != null) {
+			String[] chunks = steamId.split(":");
+			if (steamId.startsWith("STEAM_")) {
+				// steamID
+				steamId3 = String.valueOf(Integer.parseInt(chunks[2]) * 2 + Integer.parseInt(chunks[1]));
+			} else if (steamId.startsWith("[U") || steamId.startsWith("U")) {
+				// full steamID3
+				steamId3 = chunks[chunks.length - 1].replace("]", "");
+			} else if (steamId.matches("[0-9]+")) {
+				// steamID64 and partial steamID3
+				long id = Long.parseLong(steamId);
+				steamId3 = Long.toString((((id >> 1) & 0x7FFFFFF) * 2) + (id & 1));
+			}
 		}
 		return steamId3;
 	}
-	
+
 	String getSteamId3() {
 		return steamId3;
 	}
