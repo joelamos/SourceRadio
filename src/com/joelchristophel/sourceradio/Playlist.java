@@ -112,7 +112,7 @@ public class Playlist implements Closeable {
 				System.out.println("Checking for SourceRadio updates...");
 				try {
 					String latestVersion = getLatestVersion();
-					if (version.compareTo(latestVersion) == 0) {
+					if (version.compareTo(latestVersion) < 0) {
 						System.out.println("Update found: " + "SourceRadio v" + latestVersion);
 					}
 				} catch (Exception e) {
