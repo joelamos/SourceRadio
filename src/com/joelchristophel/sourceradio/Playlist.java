@@ -609,11 +609,6 @@ public class Playlist implements Closeable {
 	public void close() {
 		logReader.close();
 		clearSongs();
-		try {
-			scriptWriter.removeScripts();
-		} catch (FileNotFoundException e) {
-			System.err.println(e.getMessage());
-		}
 		database.close();
 	}
 
