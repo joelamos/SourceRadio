@@ -489,12 +489,13 @@ class Song {
 		return new Song(getTitle(), getStreamUrl(), getYoutubeId(), getDuration(), query, requester, true);
 	}
 
-	static void downloadYoutubedl() {
+	static void downloadYoutubedl(String downloadDirectory) {
 		try {
 			URL website = new URL("https://yt-dl.org/downloads/latest/youtube-dl");
 			ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-			FileOutputStream fos = new FileOutputStream("youtube-dl.exe");
+			FileOutputStream fos = new FileOutputStream((downloadDirectory + "/youtube-dl.exe").replace("//", "/"));
 			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+			fos.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

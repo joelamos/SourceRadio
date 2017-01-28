@@ -119,7 +119,7 @@ public class Playlist implements Closeable {
 					System.err.println("Error while checking for updates.");
 				}
 				System.out.println("Updating youtube-dl...");
-				Song.downloadYoutubedl();
+				Song.downloadYoutubedl("libraries");
 				System.out.println("Listening for commands...");
 				playlist.start();
 			} catch (FileNotFoundException e) { // If Steam or game directories don't exist
