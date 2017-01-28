@@ -1,9 +1,13 @@
 package com.joelchristophel.sourceradio;
 
+import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.sql.Types;
 import java.text.Normalizer;
@@ -60,8 +64,8 @@ public class Playlist implements Closeable {
 	public static void main(String[] args) {
 		System.out.println();
 		String version = Playlist.class.getPackage().getImplementationVersion();
-		version = version == null ? "" : " v" + version;
-		System.out.println("**** SourceRadio" + version + " ****");
+		version = version == null ? "" : version;
+		System.out.println("**** SourceRadio" + (version.isEmpty() ? "" : " v" + version)  + " ****");
 		System.out.println();
 		List<String> argsList = args == null ? new ArrayList<String>() : new ArrayList<String>(Arrays.asList(args));
 		if (argsList.contains("-d")) { // Restore default properties
@@ -105,6 +109,17 @@ public class Playlist implements Closeable {
 					}
 				}
 				System.out.println("Game: " + game.getFriendlyName());
+				System.out.println("Checking for SourceRadio updates...");
+				try {
+					String latestVersion = getLatestVersion();
+					if (version.compareTo(latestVersion) == 0) {
+						System.out.println("Update found: " + "SourceRadio v" + latestVersion);
+					}
+				} catch (Exception e) {
+					System.err.println("Error while checking for updates.");
+				}
+				System.out.println("Updating youtube-dl...");
+				Song.downloadYoutubedl();
 				System.out.println("Listening for commands...");
 				playlist.start();
 			} catch (FileNotFoundException e) { // If Steam or game directories don't exist
@@ -206,7 +221,7 @@ public class Playlist implements Closeable {
 				timeOfCurrentRequest = Instant.now();
 				Song existing = findSongIfExists(query);
 				try {
-					final Song song = existing == null ? Song.createSong(query, issuer) : existing.copy(issuer);
+					final Song song = existing == null ? Song.createSong(query, issuer, true) : existing.copy(issuer);
 					if (existing == null && !query.isEmpty()) {
 						database.addSongRequest(query, song.getYoutubeId(), issuer.getSteamId3(), isAdmin(issuer),
 								isOwner(issuer), song.usedCachedQuery());
@@ -228,17 +243,8 @@ public class Playlist implements Closeable {
 							&& !blockedSongs.contains(song.getYoutubeId())) {
 						handleNewSong(song);
 					}
-				} catch (IOException e) {
-					if (e.getMessage() != null && e.getMessage().contains("keyInvalid")) {
-						System.err.println(
-								"Error: SourceRadio\\properties\\properties.txt does not contain a valid YouTube Data API key.");
-					} else if (e instanceof UnknownHostException) {
-						System.err.println(CONNECTION_ERROR);
-					} else {
-						e.printStackTrace();
-					}
-				} catch (NullPointerException e) {
-					e.printStackTrace();
+				} catch (Exception e) {
+					handleSongCreationException(e);
 				}
 				printSongQueue();
 				break;
@@ -382,12 +388,10 @@ public class Playlist implements Closeable {
 				try {
 					Song songToBlock = ignoreRequest(argument);
 					boolean songWasQueued = songToBlock != null;
-					if (songWasQueued) {
-						youtubeId = songToBlock.getYoutubeId();
-					} else {
-						songToBlock = Song.createSong(argument, null);
-						youtubeId = Song.createSong(argument, null).getYoutubeId();
+					if (!songWasQueued) {
+						songToBlock = Song.createSong(argument, null, true);
 					}
+					youtubeId = songToBlock.getYoutubeId();
 					if (youtubeId == null) {
 						System.out.println("Failed to block song.");
 					} else {
@@ -400,8 +404,8 @@ public class Playlist implements Closeable {
 					if (songWasQueued) {
 						printSongQueue();
 					}
-				} catch (IOException e) {
-					System.err.println(CONNECTION_ERROR);
+				} catch (Exception e) {
+					handleSongCreationException(e);
 				}
 				if (commandVocalization) {
 					Command.BLOCK_SONG.playAudio(youtubeId != null, shareCommandVocals);
@@ -411,7 +415,7 @@ public class Playlist implements Closeable {
 				success = false;
 				try {
 					if (argument != null && !argument.isEmpty()) {
-						Song songToUnblock = Song.createSong(argument, null);
+						Song songToUnblock = Song.createSong(argument, null, true);
 						if (songToUnblock.getYoutubeId() != null) {
 							success = blockedSongs.remove(songToUnblock.getYoutubeId());
 							if (toBeWritten) {
@@ -425,8 +429,8 @@ public class Playlist implements Closeable {
 					if (!success) {
 						System.out.println("Failed to unblock song.");
 					}
-				} catch (IOException e) {
-					System.err.println(CONNECTION_ERROR);
+				} catch (Exception e) {
+					handleSongCreationException(e);
 				}
 				if (commandVocalization) {
 					Command.UNBLOCK_SONG.playAudio(success, shareCommandVocals);
@@ -1051,6 +1055,35 @@ public class Playlist implements Closeable {
 		query = Normalizer.normalize(query, Form.NFD);
 		query = query.replaceAll("\\s+", " ");
 		return query.toLowerCase(Locale.ENGLISH).trim();
+	}
+
+	private static String getLatestVersion() throws Exception {
+		StringBuilder result = new StringBuilder();
+		URL url = new URL("https://github.com/joelamos/SourceRadio/releases/latest");
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("GET");
+		BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+		String line;
+		while ((line = reader.readLine()) != null) {
+			result.append(line);
+		}
+		reader.close();
+		String needle = "SourceRadio/tree/";
+		String html = result.toString();
+		int needlePosition = html.indexOf(needle);
+		String version = html.substring(needlePosition + needle.length(), html.indexOf('"', needlePosition));
+		return version.charAt(0) == 'v' ? version.substring(1) : version;
+	}
+
+	private static void handleSongCreationException(Exception e) {
+		if (e.getMessage() != null && e.getMessage().contains("keyInvalid")) {
+			System.err.println(
+					"Error: SourceRadio\\properties\\properties.txt does not contain a valid YouTube Data API key.");
+		} else if (e instanceof UnknownHostException) {
+			System.err.println(CONNECTION_ERROR);
+		} else {
+			e.printStackTrace();
+		}
 	}
 
 	public static List<String> getCommands() {

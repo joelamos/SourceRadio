@@ -2,9 +2,13 @@ package com.joelchristophel.sourceradio;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Paths;
 import java.sql.Types;
 import java.text.DateFormat;
@@ -85,8 +89,6 @@ class Song {
 	 *            - the player who requested this song
 	 * @param usedCachedQuery
 	 *            - indicates whether or not this song's data was acquired from a cached song request
-	 * @param fileType
-	 *            - the type of file located at <code>streamUrl</code>
 	 */
 	Song(String title, String streamUrl, String youtubeId, int duration, String query, Player requester,
 			boolean usedCachedQuery) {
@@ -110,14 +112,16 @@ class Song {
 	 *            - the argument of the requester's song request
 	 * @param requester
 	 *            - the player who requested this song
+	 * @param useCachedData
+	 *            - indicates whether or not to use cached data in constructing the song
 	 * @return the newly created <code>Song</code>
 	 */
-	static Song createSong(String query, Player requester) throws IOException {
+	static Song createSong(String query, Player requester, boolean useCachedData) throws IOException {
 		Song song = null;
 		if (query == null || query.isEmpty()) {
 			song = new Song(null, null, null, -1, query, requester, false);
 		} else {
-			String[] songData = database.getSongDataFromQuery(query);
+			String[] songData = useCachedData ? database.getSongDataFromQuery(query) : null;
 			String cachedAudioPath = null;
 			String youtubeId = null;
 			if (songData != null) {
@@ -162,7 +166,7 @@ class Song {
 						if (error.contains("Unable to download webpage")) {
 							throw new UnknownHostException(error);
 						} else {
-							System.err.println(error);
+							throw new RuntimeException(error);
 						}
 					}
 				}
@@ -483,6 +487,17 @@ class Song {
 
 	public Song copy(Player requester) {
 		return new Song(getTitle(), getStreamUrl(), getYoutubeId(), getDuration(), query, requester, true);
+	}
+
+	static void downloadYoutubedl() {
+		try {
+			URL website = new URL("https://yt-dl.org/downloads/latest/youtube-dl");
+			ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+			FileOutputStream fos = new FileOutputStream("youtube-dl.exe");
+			fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
