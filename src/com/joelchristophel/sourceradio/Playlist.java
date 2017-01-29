@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -111,7 +110,7 @@ public class Playlist implements Closeable {
 				System.out.println("Game: " + game.getFriendlyName());
 				System.out.println("Checking for SourceRadio updates...");
 				try {
-					String latestVersion = getLatestVersion();
+					String latestVersion = getLatestVersion("joelamos", "SourceRadio");
 					if (version.compareTo(latestVersion) < 0) {
 						System.out.println("Update found: " + "SourceRadio v" + latestVersion);
 					}
@@ -1052,9 +1051,9 @@ public class Playlist implements Closeable {
 		return query.toLowerCase(Locale.ENGLISH).trim();
 	}
 
-	private static String getLatestVersion() throws Exception {
+	static String getLatestVersion(String githubUser, String repository) throws Exception {
 		StringBuilder result = new StringBuilder();
-		URL url = new URL("https://github.com/joelamos/SourceRadio/releases/latest");
+		URL url = new URL("https://github.com/" + githubUser + "/" + repository + "/releases/latest");
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setRequestMethod("GET");
 		BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -1063,7 +1062,7 @@ public class Playlist implements Closeable {
 			result.append(line);
 		}
 		reader.close();
-		String needle = "SourceRadio/tree/";
+		String needle = repository + "/tree/";
 		String html = result.toString();
 		int needlePosition = html.indexOf(needle);
 		String version = html.substring(needlePosition + needle.length(), html.indexOf('"', needlePosition));
