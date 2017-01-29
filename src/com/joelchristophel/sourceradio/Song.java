@@ -492,7 +492,6 @@ class Song {
 	static void downloadYoutubedl(String downloadDirectory) {
 		try {
 			String version = Playlist.getLatestVersion("rg3", "youtube-dl");
-			System.out.println(version);
 			URL website = new URL("https://github.com/rg3/youtube-dl/releases/download/" + version + "/youtube-dl.exe");
 			ReadableByteChannel rbc = Channels.newChannel(website.openStream());
 			FileOutputStream fos = new FileOutputStream((downloadDirectory + "/youtube-dl.exe").replace("//", "/"));
