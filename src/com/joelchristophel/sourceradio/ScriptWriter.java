@@ -27,7 +27,7 @@ class ScriptWriter {
 			"pgup", "pgdn", "kp_slash", "kp_multiply", "kp_plus", "kp_minus", "kp_home", "kp_end", "kp_uparrow",
 			"kp_downarrow", "kp_leftarrow", "kp_rightarrow", "kp_pgup", "kp_pgdn", "kp_5", "kp_ins", "kp_enter",
 			"uparrow", "downarrow", "leftarrow", "rightarrow" };
-	
+
 	/**
 	 * Writes the scripts required for SourceRadio to run properly.
 	 * 
@@ -35,120 +35,123 @@ class ScriptWriter {
 	 */
 	void writeScripts() throws FileNotFoundException {
 		consoleLogName = LogReader.getInstance().getIntendedLogName();
-
-		File cfgDirectory = new File(Game.getCurrentGame().getCfgPath());
-		if (!(cfgDirectory.exists() && cfgDirectory.getPath().endsWith("cfg"))) {
-			throw new RuntimeException("The path to the game's directory is incorrect.");
-		}
-		String autoExecPath = cfgDirectory.getPath() + File.separator + "autoexec.cfg";
-		String appCfgPath = cfgDirectory.getPath() + File.separator + APP_CFG_NAME;
-		File appCfgFile = new File(appCfgPath);
-		if (appCfgFile.exists()) {
-			appCfgFile.delete();
-		}
 		try {
-			appCfgFile.createNewFile();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		String fileText = "status" + System.lineSeparator();
-		if (!existingBind("space")) {
-			fileText += "bind space +statusJump" + System.lineSeparator();
-			fileText += "alias +statusJump \"+jump; status; spec_mode;\"" + System.lineSeparator();
-			fileText += "alias -statusJump \"-jump\"" + System.lineSeparator();
-		}
-		String ignoreBind = properties.get("ignore bind");
-		String commandVisibility = getCommandVisibility();
-		String infoVisibility = getInfoVisibility();
-		if (!ignoreBind.isEmpty()) {
-			if (isValidKey(ignoreBind)) {
-				fileText += "bind " + ignoreBind + " \"" + commandVisibility + " !ignore\"" + System.lineSeparator();
-			} else {
-				throw new RuntimeException("The bind for the ignore command is not valid.");
+			File cfgDirectory = new File(Game.getCurrentGame().getCfgPath());
+			String autoExecPath = cfgDirectory.getPath() + File.separator + "autoexec.cfg";
+			String appCfgPath = cfgDirectory.getPath() + File.separator + APP_CFG_NAME;
+			File appCfgFile = new File(appCfgPath);
+			if (appCfgFile.exists()) {
+				appCfgFile.delete();
 			}
-		}
-		String skipBind = properties.get("skip bind");
-		if (!skipBind.isEmpty()) {
-			if (isValidKey(skipBind)) {
-				fileText += "bind " + skipBind + " \"" + commandVisibility + " !skip\"" + System.lineSeparator();
-			} else {
-				throw new RuntimeException("The bind for the skip command is not valid.");
+			try {
+				appCfgFile.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-		}
-		String instructions = properties.get("instructions");
-		if (!instructions.isEmpty()) {
-			String instructionsBind = properties.get("instructions bind");
-			if (!instructionsBind.isEmpty()) {
-				if (isValidKey(instructionsBind)) {
-					fileText += "bind " + instructionsBind + " \"" + infoVisibility + " " + instructions + "\""
+			String fileText = "status" + System.lineSeparator();
+			if (!existingBind("space")) {
+				fileText += "bind space +statusJump" + System.lineSeparator();
+				fileText += "alias +statusJump \"+jump; status; spec_mode;\"" + System.lineSeparator();
+				fileText += "alias -statusJump \"-jump\"" + System.lineSeparator();
+			}
+			String ignoreBind = properties.get("ignore bind");
+			String commandVisibility = getCommandVisibility();
+			String infoVisibility = getInfoVisibility();
+			if (!ignoreBind.isEmpty()) {
+				if (isValidKey(ignoreBind)) {
+					fileText += "bind " + ignoreBind + " \"" + commandVisibility + " !ignore\""
 							+ System.lineSeparator();
 				} else {
-					throw new RuntimeException("The bind for the instructions command is not valid.");
+					throw new RuntimeException("The bind for the ignore command is not valid.");
 				}
 			}
-		}
-		String currentSongBind = properties.get("current song bind");
-		if (!currentSongBind.isEmpty()) {
-			if (isValidKey(currentSongBind)) {
-				fileText += "bind " + currentSongBind + " \"exec current_song.cfg\"" + System.lineSeparator();
-			} else {
-				throw new RuntimeException("The bind for the current song command is not valid.");
+			String skipBind = properties.get("skip bind");
+			if (!skipBind.isEmpty()) {
+				if (isValidKey(skipBind)) {
+					fileText += "bind " + skipBind + " \"" + commandVisibility + " !skip\"" + System.lineSeparator();
+				} else {
+					throw new RuntimeException("The bind for the skip command is not valid.");
+				}
 			}
-		}
-		String automicBind = properties.get("automic bind");
-		if (!automicBind.isEmpty()) {
-			if (isValidKey(automicBind)) {
-				fileText += "bind " + automicBind + " +automic" + System.lineSeparator() + "alias +automic +voicerecord"
-						+ System.lineSeparator() + "alias -automic +voicerecord" + System.lineSeparator();
-			} else {
-				throw new RuntimeException("The bind for the always-on microphone command is not valid.");
+			String instructions = properties.get("instructions");
+			if (!instructions.isEmpty()) {
+				String instructionsBind = properties.get("instructions bind");
+				if (!instructionsBind.isEmpty()) {
+					if (isValidKey(instructionsBind)) {
+						fileText += "bind " + instructionsBind + " \"" + infoVisibility + " " + instructions + "\""
+								+ System.lineSeparator();
+					} else {
+						throw new RuntimeException("The bind for the instructions command is not valid.");
+					}
+				}
 			}
-		}
-		String reloadScriptBind = properties.get("reload script bind");
-		if (!reloadScriptBind.isEmpty()) {
-			if(isValidKey(reloadScriptBind)) {
-				fileText += "bind " + reloadScriptBind + " \"exec sourceradio.cfg\"" + System.lineSeparator();
-			} else {
-				throw new RuntimeException("The bind for reloading the script is not valid.");
+			String currentSongBind = properties.get("current song bind");
+			if (!currentSongBind.isEmpty()) {
+				if (isValidKey(currentSongBind)) {
+					fileText += "bind " + currentSongBind + " \"exec current_song.cfg\"" + System.lineSeparator();
+				} else {
+					throw new RuntimeException("The bind for the current song command is not valid.");
+				}
 			}
-		}
-		String volumeUpBind = properties.get("volume up bind");
-		if (!volumeUpBind.isEmpty()) {
-			if (isValidKey(volumeUpBind)) {
-				fileText += "bind " + volumeUpBind + " !increase-volume" + System.lineSeparator();
-			} else {
-				throw new RuntimeException("The bind for the volume up command is not valid.");
+			String automicBind = properties.get("automic bind");
+			if (!automicBind.isEmpty()) {
+				if (isValidKey(automicBind)) {
+					fileText += "bind " + automicBind + " +automic" + System.lineSeparator()
+							+ "alias +automic +voicerecord" + System.lineSeparator() + "alias -automic +voicerecord"
+							+ System.lineSeparator();
+				} else {
+					throw new RuntimeException("The bind for the always-on microphone command is not valid.");
+				}
 			}
-		}
-		String volumeDownBind = properties.get("volume down bind");
-		if (!volumeDownBind.isEmpty()) {
-			if (isValidKey(volumeDownBind)) {
-				fileText += "bind " + volumeDownBind + " !decrease-volume" + System.lineSeparator();
-			} else {
-				throw new RuntimeException("The bind for the volume down command is not valid.");
+			String reloadScriptBind = properties.get("reload script bind");
+			if (!reloadScriptBind.isEmpty()) {
+				if (isValidKey(reloadScriptBind)) {
+					fileText += "bind " + reloadScriptBind + " \"exec sourceradio.cfg\"" + System.lineSeparator();
+				} else {
+					throw new RuntimeException("The bind for reloading the script is not valid.");
+				}
 			}
-		}
-		if (Boolean.parseBoolean(properties.get("autostart mic"))) {
-			fileText += "-voicerecord" + System.lineSeparator() + "+voicerecord" + System.lineSeparator();
-		}
-		fileText += "con_enable 1" + System.lineSeparator();
-		if (Game.getCurrentGame().canChangeLog()) {
-			fileText += "echo Logging to " + consoleLogName + System.lineSeparator() + "con_logfile " + consoleLogName;
-		}
-		File autoExecFile = new File(autoExecPath);
-		try {
-			if (!autoExecFile.exists()) {
-				autoExecFile.createNewFile();
+			String volumeUpBind = properties.get("volume up bind");
+			if (!volumeUpBind.isEmpty()) {
+				if (isValidKey(volumeUpBind)) {
+					fileText += "bind " + volumeUpBind + " !increase-volume" + System.lineSeparator();
+				} else {
+					throw new RuntimeException("The bind for the volume up command is not valid.");
+				}
 			}
+			String volumeDownBind = properties.get("volume down bind");
+			if (!volumeDownBind.isEmpty()) {
+				if (isValidKey(volumeDownBind)) {
+					fileText += "bind " + volumeDownBind + " !decrease-volume" + System.lineSeparator();
+				} else {
+					throw new RuntimeException("The bind for the volume down command is not valid.");
+				}
+			}
+			if (Boolean.parseBoolean(properties.get("autostart mic"))) {
+				fileText += "-voicerecord" + System.lineSeparator() + "+voicerecord" + System.lineSeparator();
+			}
+			fileText += "con_enable 1" + System.lineSeparator();
+			if (Game.getCurrentGame().canChangeLog()) {
+				fileText += "echo Logging to " + consoleLogName + System.lineSeparator() + "con_logfile "
+						+ consoleLogName;
+			}
+			File autoExecFile = new File(autoExecPath);
+			try {
+				if (!autoExecFile.exists()) {
+					autoExecFile.createNewFile();
+				}
 
-			Files.write(Paths.get(appCfgPath), fileText.getBytes(), StandardOpenOption.APPEND);
-			FileUtilities.removeLine(autoExecPath, "host_writeconfig", true);
-			if (!FileUtilities.fileHasLine(autoExecPath, "exec " + APP_CFG_NAME, true)) {
+				Files.write(Paths.get(appCfgPath), fileText.getBytes(), StandardOpenOption.APPEND);
+				FileUtilities.removeLine(autoExecPath, "host_writeconfig", true);
+				if (!FileUtilities.fileHasLine(autoExecPath, "exec " + APP_CFG_NAME, true)) {
+					FileUtilities.appendLine(autoExecPath,
+							System.lineSeparator() + System.lineSeparator() + "exec " + APP_CFG_NAME);
+				}
 				FileUtilities.appendLine(autoExecPath,
-						System.lineSeparator() + System.lineSeparator() + "exec " + APP_CFG_NAME);
+						System.lineSeparator() + "host_writeconfig // This must be the last line of the file");
+			} catch (IOException e) {
+				new IOException("Error: Script writing failed.", e).printStackTrace();
 			}
-			FileUtilities.appendLine(autoExecPath,
-					System.lineSeparator() + "host_writeconfig // This must be the last line of the file");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -159,13 +162,13 @@ class ScriptWriter {
 	 * 
 	 * @param song
 	 *            - the song that is currently playing
-	 * @throws FileNotFoundException
 	 */
-	void updateCurrentSongScript(Song song) throws FileNotFoundException {
-		String oldFileName = Game.getCurrentGame().getCfgPath() + "current_song.cfg";
-		String tmpFileName = Game.getCurrentGame().getCfgPath() + "current_song_temp.cfg";
+	void updateCurrentSongScript(Song song) {
+		try {
+			String oldFileName = Game.getCurrentGame().getCfgPath() + "current_song.cfg";
+			String tmpFileName = Game.getCurrentGame().getCfgPath() + "current_song_temp.cfg";
 
-		try (BufferedWriter writer = new BufferedWriter(new FileWriter(tmpFileName));) {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(tmpFileName));
 			String requestedBy = "";
 			String songTitle = "none";
 			if (song != null) {
@@ -173,15 +176,14 @@ class ScriptWriter {
 				requestedBy = "(Requested by " + song.getRequester().getUsername() + ")";
 			}
 			writer.write(getInfoVisibility() + " Current song: " + songTitle + " " + requestedBy);
-		} catch (Exception e) {
+			writer.close();
+			File oldFile = new File(oldFileName);
+			oldFile.delete();
+			File newFile = new File(tmpFileName);
+			newFile.renameTo(oldFile);
+		} catch (IOException e) {
 			e.printStackTrace();
-			return;
 		}
-
-		File oldFile = new File(oldFileName);
-		oldFile.delete();
-		File newFile = new File(tmpFileName);
-		newFile.renameTo(oldFile);
 	}
 
 	/**
@@ -189,27 +191,31 @@ class ScriptWriter {
 	 * 
 	 * @throws FileNotFoundException
 	 */
-	void removeScripts() throws FileNotFoundException {
-		String autoExecPath = Game.getCurrentGame().getCfgPath() + "autoexec.cfg";
-		FileUtilities.removeLine(autoExecPath, "exec " + APP_CFG_NAME, true);
-		updateCurrentSongScript(null);
-		FileUtilities.trimFile(autoExecPath);
+	void removeScripts() {
+		try {
+			String autoExecPath = Game.getCurrentGame().getCfgPath() + "autoexec.cfg";
+			FileUtilities.removeLine(autoExecPath, "exec " + APP_CFG_NAME, true);
+			updateCurrentSongScript(null);
+			FileUtilities.trimFile(autoExecPath);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
-	
+
 	void setAlltalk(boolean on) {
 		alltalk = on;
 	}
-	
+
 	String getInfoVisibility() {
 		return alltalk ? "say" : "say_team";
 	}
-	
+
 	String getCommandVisibility() {
 		String commandVisibility = alltalk ? "say" : "say_team";
 		return displayCommands ? commandVisibility : "";
 	}
-	
-	private boolean existingBind(String key) throws FileNotFoundException {
+
+	private boolean existingBind(String key) throws IOException {
 		Pattern pattern = Pattern.compile(".*bind \"?" + key + "\"? .*", Pattern.CASE_INSENSITIVE);
 		File cfgDirectory = new File(Game.getCurrentGame().getCfgPath());
 		for (File file : cfgDirectory.listFiles()) {

@@ -23,26 +23,26 @@ class FileUtilities {
 	 * @param includeBlankLines
 	 *            - indicates whether or not to include blank lines in list
 	 * @return the lines of the specified file or an empty list if the file was not found
+	 * @throws IOException
 	 */
-	static String[] getLines(String path, boolean includeBlankLines) {
+	static String[] getLines(String path, boolean includeBlankLines) throws IOException {
 		List<String> lines = new ArrayList<String>();
 		File file = new File(path);
 		if (file.exists()) {
-			try (BufferedReader reader = new BufferedReader(new FileReader(new File(path)));) {
-				String line = null;
-				while ((line = reader.readLine()) != null) {
-					if (!line.trim().isEmpty() || includeBlankLines) {
-						lines.add(line);
-					}
+			BufferedReader reader = new BufferedReader(new FileReader(new File(path)));
+			String line = null;
+			while ((line = reader.readLine()) != null) {
+				if (!line.trim().isEmpty() || includeBlankLines) {
+					lines.add(line);
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
+			reader.close();
+
 		}
 		return lines.toArray(new String[] {});
 	}
 
-	static boolean fileHasLine(String path, String line, boolean commentAware) {
+	static boolean fileHasLine(String path, String line, boolean commentAware) throws IOException {
 		String[] lines = getLines(path, true);
 		boolean hasLine = false;
 		for (String fileLine : lines) {
@@ -61,8 +61,9 @@ class FileUtilities {
 	 *            - the path to a file
 	 * @param line
 	 *            - the line to append
+	 * @throws IOException 
 	 */
-	static void appendLine(String path, String line) {
+	static void appendLine(String path, String line) throws IOException {
 		trimFile(path);
 		line = line.startsWith(System.lineSeparator()) ? line : System.lineSeparator() + line;
 		try {
@@ -101,8 +102,9 @@ class FileUtilities {
 	 * 
 	 * @param path
 	 *            - the path to a file
+	 * @throws IOException 
 	 */
-	static void trimFile(String path) {
+	static void trimFile(String path) throws IOException {
 		String[] lines = getLines(path, true);
 		int endingBlankLines = 0;
 		for (int i = lines.length - 1; i >= 0; i--) {
@@ -140,9 +142,10 @@ class FileUtilities {
 	 *            - the line to remove
 	 * @param commentAware
 	 *            - indicates whether or not this method is aware that comments exist
+	 * @throws IOException 
 	 * @returns <code>true</code> if the file contained the line to begin with; <code>false</code> otherwise
 	 */
-	static boolean removeLine(String path, String line, boolean commentAware) {
+	static boolean removeLine(String path, String line, boolean commentAware) throws IOException {
 		boolean hasLine = fileHasLine(path, line, commentAware);
 		if (hasLine) {
 			String[] lines = getLines(path, true);

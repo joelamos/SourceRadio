@@ -10,7 +10,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -48,6 +47,8 @@ class Properties {
 	/**
 	 * Creates a {@link Properties} instance.
 	 * 
+	 * @throws IOException
+	 * 
 	 * @see #getInstance
 	 */
 	private Properties() {
@@ -84,67 +85,75 @@ class Properties {
 		return properties.get(key);
 	}
 
-	Player getOwner() throws FileNotFoundException {
+	Player getOwner() {
 		if (owner == null) {
 			String steamPath = FileUtilities.normalizeDirectoryPath(properties.get("steam path"));
-			if (!new File(steamPath).exists()) {
-				throw new FileNotFoundException("Error: Could not find a Steam installation. "
-						+ "Check your Steam path in properties/properties.txt");
-			}
-			File userDirectory = getUserDirectory(steamPath);
-			String steamId3 = userDirectory.getName();
-			String localConfig = userDirectory.getPath() + File.separator + "config" + File.separator
-					+ "localconfig.vdf";
-			String[] lines = FileUtilities.getLines(localConfig, false);
-			String username = null;
-			for (int i = 0; i < lines.length; i++) {
-				if (username == null) {
-					if (lines[i].contains("PersonaName")) {
-						Pattern pattern = Pattern.compile(".*\"(.+)\"\\s*$");
-						Matcher matcher = pattern.matcher(lines[i]);
-						if (matcher.find()) {
-							username = matcher.group(1);
+			if (new File(steamPath).exists()) {
+				File userDirectory = getUserDirectory(steamPath);
+				String steamId3 = userDirectory.getName();
+				String localConfig = userDirectory.getPath() + File.separator + "config" + File.separator
+						+ "localconfig.vdf";
+				try {
+					String[] lines = FileUtilities.getLines(localConfig, false);
+					String username = null;
+					for (int i = 0; i < lines.length; i++) {
+						if (username == null) {
+							if (lines[i].contains("PersonaName")) {
+								Pattern pattern = Pattern.compile(".*\"(.+)\"\\s*$");
+								Matcher matcher = pattern.matcher(lines[i]);
+								if (matcher.find()) {
+									username = matcher.group(1);
+								}
+							}
+						} else {
+							if (steamId3 == null || steamId3.isEmpty()) {
+								if (lines[i].matches("\\s*\"name\"\\s*\"" + username + "\"\\s*$")) {
+									steamId3 = lines[i - 2].trim().replace("\"", "");
+									owner = Player.createPlayer(steamId3, username);
+									break;
+								}
+							} else {
+								owner = Player.createPlayer(steamId3, username);
+								break;
+							}
 						}
 					}
-				} else {
-					if (steamId3 == null || steamId3.isEmpty()) {
-						if (lines[i].matches("\\s*\"name\"\\s*\"" + username + "\"\\s*$")) {
-							steamId3 = lines[i - 2].trim().replace("\"", "");
-							owner = Player.createPlayer(steamId3, username);
-							break;
-						}
-					} else {
-						owner = Player.createPlayer(steamId3, username);
-						break;
-					}
+				} catch (IOException e) {
+					String message = "Error: Could not find the owner's SteamID in " + localConfig + ".";
+					new IOException(message, e).printStackTrace();
 				}
+			} else {
+				String message = "Error: Could not find a Steam installation. Check your Steam path in properties/properties.txt";
+				new FileNotFoundException(message).printStackTrace();
 			}
 		}
 		return owner;
 	}
 
-	private File getUserDirectory(String steamPath) throws FileNotFoundException {
+	private File getUserDirectory(String steamPath) {
+		File userDirectory = null;
 		File userdata = new File(steamPath + "userdata");
-		if (!userdata.exists()) {
-			throw new FileNotFoundException(
-					"Error: Could not find Steam userdata directory: " + userdata.getAbsolutePath());
-		}
-		List<File> users = new ArrayList<File>(Arrays.asList(userdata.listFiles()));
-		for (Iterator<File> iterator = users.iterator(); iterator.hasNext();) {
-			File user = iterator.next();
-			if (!user.getName().matches("[0-9]+")) {
-				iterator.remove();
-			}
-		}
-		File userDirectory = users.get(0); // May be wrong account
-		String steamId3 = properties.get("steamid3");
-		if (steamId3 != null && !steamId3.isEmpty()) {
-			for (File user : users) {
-				if (user.getName().equals(steamId3)) {
-					userDirectory = user;
-					break;
+		if (userdata.exists()) {
+			List<File> users = new ArrayList<File>(Arrays.asList(userdata.listFiles()));
+			for (Iterator<File> iterator = users.iterator(); iterator.hasNext();) {
+				File user = iterator.next();
+				if (!user.getName().matches("[0-9]+")) {
+					iterator.remove();
 				}
 			}
+			userDirectory = users.get(0); // May be wrong account
+			String steamId3 = properties.get("steamid3");
+			if (steamId3 != null && !steamId3.isEmpty()) {
+				for (File user : users) {
+					if (user.getName().equals(steamId3)) {
+						userDirectory = user;
+						break;
+					}
+				}
+			}
+		} else {
+			String message = "Error: Could not find Steam userdata directory " + userdata.getAbsolutePath() + ".";
+			new FileNotFoundException(message).printStackTrace();
 		}
 		return userDirectory;
 	}
@@ -154,12 +163,16 @@ class Properties {
 	 * 
 	 * @return a set containing each admin listed in the <code>admins</code> file
 	 */
-	Set<Player> getAdmins() throws FileNotFoundException {
+	Set<Player> getAdmins() {
 		Set<Player> admins = new HashSet<Player>();
-		for (String steamId : FileUtilities.getLines(ADMINS_PATH, false)) {
-			if (steamId.matches("[0-9]+(\\s*//.*)?")) {
-				admins.add(Player.getPlayerFromSteamId(steamId.split("\\s*//")[0]));
+		try {
+			for (String steamId : FileUtilities.getLines(ADMINS_PATH, false)) {
+				if (steamId.matches("[0-9]+(\\s*//.*)?")) {
+					admins.add(Player.getPlayerFromSteamId(steamId.split("\\s*//")[0]));
+				}
 			}
+		} catch (IOException e) {
+			new IOException("Error: Failed to read the admins list at " + ADMINS_PATH + ".", e).printStackTrace();
 		}
 		admins.add(getOwner());
 		return admins;
@@ -172,20 +185,29 @@ class Properties {
 	 */
 	Set<Player> getBannedPlayers() {
 		Set<Player> bannedPlayers = new HashSet<Player>();
-		for (String line : FileUtilities.getLines(BANNED_PLAYERS_PATH, false)) {
-			if (line.matches("[0-9]+(\\s*//.*)?")) {
-				bannedPlayers.add(Player.getPlayerFromSteamId(line.split("\\s*//")[0]));
+		try {
+			for (String line : FileUtilities.getLines(BANNED_PLAYERS_PATH, false)) {
+				if (line.matches("[0-9]+(\\s*//.*)?")) {
+					bannedPlayers.add(Player.getPlayerFromSteamId(line.split("\\s*//")[0]));
+				}
 			}
+		} catch (IOException e) {
+			new IOException("Error: Failed to read the banned players list from " + BANNED_PLAYERS_PATH + ".", e);
 		}
 		return bannedPlayers;
 	}
 
 	Set<String> getBlockedSongs() {
 		Set<String> blockedSongs = new HashSet<String>();
-		for (String line : FileUtilities.getLines(BLOCKED_SONGS_PATH, false)) {
-			if (line.matches("[a-zA-Z0-9_-]+(\\s*//.*)?")) {
-				blockedSongs.add(line.split("\\s*//")[0]);
+		try {
+			for (String line : FileUtilities.getLines(BLOCKED_SONGS_PATH, false)) {
+				if (line.matches("[a-zA-Z0-9_-]+(\\s*//.*)?")) {
+					blockedSongs.add(line.split("\\s*//")[0]);
+				}
 			}
+		} catch (IOException e) {
+			String message = "Error: Failed to read the blocked songs list from " + BLOCKED_SONGS_PATH + ".";
+			new IOException(message, e).printStackTrace();
 		}
 		return blockedSongs;
 	}
@@ -218,29 +240,30 @@ class Properties {
 	 */
 	void writeProperty(String property, String value) {
 		if (!value.equals(properties.get(property))) {
-			properties.put(property, value);
-			String[] lines = FileUtilities.getLines(PROPERTIES_PATH, false);
-			boolean foundProperty = false;
-			String fileText = "";
-			for (int i = 0; i < lines.length; i++) {
-				if (lines[i].trim().toLowerCase().startsWith(property.toLowerCase())) {
-					fileText += property + DELIMITER + " " + value + System.lineSeparator();
-					foundProperty = true;
-				} else {
-					fileText += lines[i] + System.lineSeparator();
-				}
-			}
-			if (!foundProperty) {
-				fileText += property + DELIMITER + " " + value + System.lineSeparator();
-			}
 			try {
+				properties.put(property, value);
+				String[] lines = FileUtilities.getLines(PROPERTIES_PATH, false);
+				boolean foundProperty = false;
+				String fileText = "";
+				for (int i = 0; i < lines.length; i++) {
+					if (lines[i].trim().toLowerCase().startsWith(property.toLowerCase())) {
+						fileText += property + DELIMITER + " " + value + System.lineSeparator();
+						foundProperty = true;
+					} else {
+						fileText += lines[i] + System.lineSeparator();
+					}
+				}
+				if (!foundProperty) {
+					fileText += property + DELIMITER + " " + value + System.lineSeparator();
+				}
 				File file = new File(PROPERTIES_PATH);
 				file.delete();
 				Files.write(Paths.get(PROPERTIES_PATH), fileText.getBytes(), StandardOpenOption.CREATE);
+				FileUtilities.trimFile(PROPERTIES_PATH);
 			} catch (IOException e) {
-				e.printStackTrace();
+				String message = "Error: Failed to write \"" + property + "\" property to " + PROPERTIES_PATH + ".";
+				new IOException(message, e).printStackTrace();
 			}
-			FileUtilities.trimFile(PROPERTIES_PATH);
 		}
 	}
 
@@ -252,9 +275,14 @@ class Properties {
 	 */
 	void addAdmin(Player player) {
 		if (player.getSteamId3() != null) {
-			if (!FileUtilities.fileHasLine(ADMINS_PATH, player.getSteamId3(), true)) {
-				String username = player.getUsername() == null ? "" : " // Last known as: " + player.getUsername();
-				FileUtilities.appendLine(ADMINS_PATH, player.getSteamId3() + username);
+			try {
+				if (!FileUtilities.fileHasLine(ADMINS_PATH, player.getSteamId3(), true)) {
+					String username = player.getUsername() == null ? "" : " // Last known as: " + player.getUsername();
+					FileUtilities.appendLine(ADMINS_PATH, player.getSteamId3() + username);
+				}
+			} catch (IOException e) {
+				String message = "Error: Failed to add admin " + player.getSteamId3() + " to " + ADMINS_PATH + ".";
+				new IOException(message, e).printStackTrace();
 			}
 		}
 	}
@@ -269,7 +297,12 @@ class Properties {
 	boolean removeAdmin(Player admin) {
 		boolean success = false;
 		if (admin.getSteamId3() != null) {
-			success = FileUtilities.removeLine(ADMINS_PATH, admin.getSteamId3(), true);
+			try {
+				success = FileUtilities.removeLine(ADMINS_PATH, admin.getSteamId3(), true);
+			} catch (IOException e) {
+				String message = "Error: Failed to remove admin " + admin.getSteamId3() + " from " + ADMINS_PATH + ".";
+				new IOException(message, e).printStackTrace();
+			}
 		}
 		return success;
 	}
@@ -282,9 +315,15 @@ class Properties {
 	 */
 	void addBannedPlayer(Player player) {
 		if (player.getSteamId3() != null) {
-			if (!FileUtilities.fileHasLine(BANNED_PLAYERS_PATH, player.getSteamId3(), true)) {
-				String username = player.getUsername() == null ? "" : " // Last known as: " + player.getUsername();
-				FileUtilities.appendLine(BANNED_PLAYERS_PATH, player.getSteamId3() + username);
+			try {
+				if (!FileUtilities.fileHasLine(BANNED_PLAYERS_PATH, player.getSteamId3(), true)) {
+					String username = player.getUsername() == null ? "" : " // Last known as: " + player.getUsername();
+					FileUtilities.appendLine(BANNED_PLAYERS_PATH, player.getSteamId3() + username);
+				}
+			} catch (IOException e) {
+				String message = "Error: Failed to add player + " + player.getSteamId3() + " to " + BANNED_PLAYERS_PATH
+						+ ".";
+				new IOException(message, e).printStackTrace();
 			}
 		}
 	}
@@ -299,15 +338,25 @@ class Properties {
 	boolean removeBannedPlayer(Player player) {
 		boolean success = false;
 		if (player.getSteamId3() != null) {
-			success = FileUtilities.removeLine(BANNED_PLAYERS_PATH, player.getSteamId3(), true);
+			try {
+				success = FileUtilities.removeLine(BANNED_PLAYERS_PATH, player.getSteamId3(), true);
+			} catch (IOException e) {
+				String message = "Error: Failed to remove player " + player.getSteamId3() + " from "
+						+ BANNED_PLAYERS_PATH + ".";
+				new IOException(message, e).printStackTrace();
+			}
 		}
 		return success;
 	}
 
 	void addBlockedSong(Song song) {
 		if (song.getYoutubeId() != null) {
-			if (!FileUtilities.fileHasLine(BLOCKED_SONGS_PATH, song.getYoutubeId(), true)) {
-				FileUtilities.appendLine(BLOCKED_SONGS_PATH, song.getYoutubeId() + " // " + song.getTitle());
+			try {
+				if (!FileUtilities.fileHasLine(BLOCKED_SONGS_PATH, song.getYoutubeId(), true)) {
+					FileUtilities.appendLine(BLOCKED_SONGS_PATH, song.getYoutubeId() + " // " + song.getTitle());
+				}
+			} catch (IOException e) {
+				new IOException("Error: Failed to add song to " + BLOCKED_SONGS_PATH + ".", e).printStackTrace();
 			}
 		}
 	}
@@ -315,7 +364,11 @@ class Properties {
 	boolean removeBlockedSong(Song song) {
 		boolean success = false;
 		if (song.getYoutubeId() != null) {
-			success = FileUtilities.removeLine(BLOCKED_SONGS_PATH, song.getYoutubeId(), true);
+			try {
+				success = FileUtilities.removeLine(BLOCKED_SONGS_PATH, song.getYoutubeId(), true);
+			} catch (IOException e) {
+				new IOException("Error: Failed to remove song from " + BLOCKED_SONGS_PATH + ".", e).printStackTrace();
+			}
 		}
 		return success;
 	}
@@ -381,7 +434,7 @@ class Properties {
 				for (String property : properties.keySet()) {
 					if (line.toLowerCase().startsWith(property + DELIMITER)) {
 						if (propertiesRead.contains(property)) {
-							throw new RuntimeException("The property \"" + property
+							throw new IOException("The property \"" + property
 									+ "\" is listed more than once in \"" + filename + "\".");
 						}
 						if (line.matches(".*//.*")) {
@@ -394,7 +447,7 @@ class Properties {
 							properties.put(property, splitLine[1]);
 							break;
 						} else {
-							throw new RuntimeException(
+							throw new IOException(
 									"The property \"" + property + "\" could not be read from \"" + filename + "\".");
 						}
 					}
@@ -441,17 +494,14 @@ class Properties {
 	 *            - a map of properties and values to append
 	 * @param path
 	 *            - either <code>PROPERTIES_PATH</code> or <code>DEFAULT_PROPERTIES_PATH</code>
+	 * @throws IOException
 	 */
-	private static void appendProperties(Map<String, String> properties, String path) {
+	private static void appendProperties(Map<String, String> properties, String path) throws IOException {
 		String textToAppend = "";
 		for (String property : properties.keySet()) {
 			textToAppend += System.lineSeparator() + property + DELIMITER + " " + properties.get(property);
 		}
-		try {
-			Files.write(Paths.get(path), textToAppend.getBytes(), StandardOpenOption.APPEND);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		Files.write(Paths.get(path), textToAppend.getBytes(), StandardOpenOption.APPEND);
 		FileUtilities.trimFile(path);
 	}
 
@@ -477,15 +527,18 @@ class Properties {
 	}
 
 	private String[] getPropertyNames() {
-		String[] lines = FileUtilities.getLines(DEFAULT_PROPERTIES_PATH, false);
 		List<String> propertyNames = new ArrayList<String>();
-
-		for (String line : lines) {
-			try {
-				propertyNames.add(line.split(DELIMITER)[0].trim());
-			} catch (Exception e) {
-				throw new RuntimeException("The default properties file has been corrupted.");
+		try {
+			String[] lines = FileUtilities.getLines(DEFAULT_PROPERTIES_PATH, false);
+			for (String line : lines) {
+				try {
+					propertyNames.add(line.split(DELIMITER)[0].trim());
+				} catch (Exception e) {
+					new IOException("The default properties file has been corrupted.", e).printStackTrace();
+				}
 			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		return propertyNames.toArray(new String[] {});
 	}

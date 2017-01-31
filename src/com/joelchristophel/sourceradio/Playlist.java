@@ -1,12 +1,9 @@
 package com.joelchristophel.sourceradio;
 
-import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.sql.Types;
 import java.text.Normalizer;
@@ -64,7 +61,7 @@ public class Playlist implements Closeable {
 		System.out.println();
 		String version = Playlist.class.getPackage().getImplementationVersion();
 		version = version == null ? "" : version;
-		System.out.println("**** SourceRadio" + (version.isEmpty() ? "" : " v" + version)  + " ****");
+		System.out.println("**** SourceRadio" + (version.isEmpty() ? "" : " v" + version) + " ****");
 		System.out.println();
 		List<String> argsList = args == null ? new ArrayList<String>() : new ArrayList<String>(Arrays.asList(args));
 		if (argsList.contains("-d")) { // Restore default properties
@@ -121,7 +118,7 @@ public class Playlist implements Closeable {
 				Song.downloadYoutubedl("libraries");
 				System.out.println("Listening for commands...");
 				playlist.start();
-			} catch (FileNotFoundException e) { // If Steam or game directories don't exist
+			} catch (IOException e) {
 				System.out.println(e.getMessage());
 			}
 		}
@@ -131,9 +128,9 @@ public class Playlist implements Closeable {
 	 * This method is to be used to obtain a {@link Playlist} instance.
 	 * 
 	 * @return a <code>Playlist</code> instance
-	 * @throws FileNotFoundException
+	 * @throws IOException
 	 */
-	public synchronized static Playlist getInstance(Game game) throws FileNotFoundException {
+	public synchronized static Playlist getInstance(Game game) throws IOException {
 		Playlist playlist = null;
 		if (instance == null) {
 			playlist = (instance = new Playlist(game));
@@ -148,11 +145,11 @@ public class Playlist implements Closeable {
 	/**
 	 * Constructs a {@link Playlist}.
 	 * 
-	 * @throws FileNotFoundException
+	 * @throws IOException
 	 * 
 	 * @see #getInstance
 	 */
-	private Playlist(Game game) throws FileNotFoundException {
+	private Playlist(Game game) throws IOException {
 		super();
 		this.game = game;
 		initialize();
@@ -161,9 +158,9 @@ public class Playlist implements Closeable {
 	/**
 	 * Starts the database, initializes instance variables, and writes key binds.
 	 * 
-	 * @throws FileNotFoundException
+	 * @throws IOException
 	 */
-	private void initialize() throws FileNotFoundException {
+	private void initialize() throws IOException {
 		Game.setCurrentGame(game);
 		logReader = LogReader.getInstance();
 		database = DatabaseManager.getInstance();
@@ -619,11 +616,7 @@ public class Playlist implements Closeable {
 	 */
 	private void setCurrentSong(Song song) {
 		currentSong = song;
-		try {
-			scriptWriter.updateCurrentSongScript(song);
-		} catch (FileNotFoundException e) {
-			System.err.println(e.getMessage());
-		}
+		scriptWriter.updateCurrentSongScript(song);
 	}
 
 	/**
@@ -787,7 +780,6 @@ public class Playlist implements Closeable {
 			success = admins.remove(adminToRemove);
 			if (toBeWritten) {
 				Runnable removeAdmin = new Runnable() {
-
 					@Override
 					public void run() {
 						properties.removeAdmin(adminToRemove);

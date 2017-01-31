@@ -2,10 +2,10 @@ package com.joelchristophel.sourceradio;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IllformedLocaleException;
-import java.util.List;
 import java.util.ListResourceBundle;
 import java.util.Locale;
 import java.util.Map;
@@ -21,12 +21,18 @@ public class StringResources extends ListResourceBundle {
 	protected Object[][] getContents() {
 		Locale locale = getLocale(Properties.getInstance().get("steam locale"));
 		File stringResource = getResource(locale);
-		String[] lines = FileUtilities.getLines(stringResource.getAbsolutePath(), false);
-		String[][] contents = new String[lines.length][2];
-		for (int i = 0; i < contents.length; i++) {
-			String[] chunks = lines[i].split("=");
-			contents[i][0] = chunks[0].replaceAll("[^a-zA-Z0-9_]+", "");
-			contents[i][1] = chunks[1];
+		String[][] contents = null;
+		try {
+			String[] lines = FileUtilities.getLines(stringResource.getAbsolutePath(), false);
+			contents = new String[lines.length][2];
+			for (int i = 0; i < contents.length; i++) {
+				String[] chunks = lines[i].split("=");
+				contents[i][0] = chunks[0].replaceAll("[^a-zA-Z0-9_]+", "");
+				contents[i][1] = chunks[1];
+			}
+		} catch (IOException e) {
+			String message = "Error: Failed to find string resource file " + stringResource.getPath() + ".";
+			new IOException(message, e).printStackTrace();
 		}
 		return contents;
 	}

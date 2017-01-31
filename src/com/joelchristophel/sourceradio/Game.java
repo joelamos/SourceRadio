@@ -1,7 +1,7 @@
 package com.joelchristophel.sourceradio;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 
 enum Game {
 	TEAM_FORTRESS_2("Team Fortress 2", 440, "steamapps\\common\\Team Fortress 2\\tf\\", "hl2.exe", false, true,
@@ -12,7 +12,8 @@ enum Game {
 					StringResources.get("counterTerroristPattern"), " @ .+$" },
 			new String[] { "CS:GO", "CSGO", "Counterstrike", "Counter-Strike" }),
 	LEFT_4_DEAD_2("Left 4 Dead 2", 550, "steamapps\\common\\Left 4 Dead 2\\left4dead2\\", "left4dead2.exe", false,
-			false, new String[] { StringResources.get("survivorPattern") }, new String[] { "L4D2", "Left for Dead 2" });
+			false, new String[] { StringResources.get("survivorPattern") },
+			new String[] { "L4D2", "LFD2", "Left for Dead 2" });
 	private static Properties properties = Properties.getInstance();
 	private static Game currentGame;
 	private String friendlyName;
@@ -89,16 +90,23 @@ enum Game {
 		return exeName;
 	}
 
-	String getCfgPath() throws FileNotFoundException {
-		String steamId3 = properties.getOwner().getSteamId3();
-		String cfgPath = null;
-		if (cfgInUserdata) {
-			cfgPath = getSteamPath() + "userdata" + File.separator + steamId3 + File.separator + currentGame.id
-					+ File.separator + "local" + File.separator + "cfg" + File.separator;
-		} else {
-			cfgPath = currentGame.getPath() + "cfg" + File.separator;
+	String getCfgPath() throws IOException {
+		try {
+			String cfgPath = null;
+			String steamId3 = properties.getOwner().getSteamId3();
+			if (cfgInUserdata) {
+				cfgPath = getSteamPath() + "userdata" + File.separator + steamId3 + File.separator + currentGame.id
+						+ File.separator + "local" + File.separator + "cfg" + File.separator;
+			} else {
+				cfgPath = currentGame.getPath() + "cfg" + File.separator;
+			}
+			if (!new File(cfgPath).exists()) {
+				throw new IOException("Error: The game's expected cfg directory doesn't exist: " + cfgPath + ".");
+			}
+			return cfgPath;
+		} catch (IOException e) {
+			throw new IOException("Error: Failed to find the path to the game's cfg directory.", e);
 		}
-		return cfgPath;
 	}
 
 	boolean canChangeLog() {
