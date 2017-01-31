@@ -116,63 +116,72 @@ class Song {
 	 *            - indicates whether or not to use cached data in constructing the song
 	 * @return the newly created <code>Song</code>
 	 */
-	static Song createSong(String query, Player requester, boolean useCachedData) throws IOException {
+	static Song createSong(String query, Player requester, boolean useCachedData) {
 		Song song = null;
-		if (query == null || query.isEmpty()) {
-			song = new Song(null, null, null, -1, query, requester, false);
-		} else {
-			String[] songData = useCachedData ? database.getSongDataFromQuery(query) : null;
-			String cachedAudioPath = null;
-			String youtubeId = null;
-			if (songData != null) {
-				youtubeId = songData[1];
-				cachedAudioPath = getCachedPath(youtubeId);
-			}
-			if (cachedAudioPath == null) {
-				boolean usedCachedQuery = false;
-				if (youtubeId == null) {
-					youtubeId = getYoutubeVideo(query);
-				} else {
-					usedCachedQuery = true;
+		try {
+			if (query == null || query.isEmpty()) {
+				song = new Song(null, null, null, -1, query, requester, false);
+			} else {
+				String[] songData = useCachedData ? database.getSongDataFromQuery(query) : null;
+				String cachedAudioPath = null;
+				String youtubeId = null;
+				if (songData != null) {
+					youtubeId = songData[1];
+					cachedAudioPath = getCachedPath(youtubeId);
 				}
-				if (youtubeId == null) {
-					song = new Song(null, null, null, -1, query, requester, false);
-				} else {
-					String youtubeUrl = " http://www.youtube.com/watch?v=" + youtubeId;
-					String format = " -f bestaudio[ext!=webm] ";
-					String command = "\"" + YOUTUBEDL_PATH + "\"" + " -e -g --get-duration -x" + format + youtubeUrl;
-					Process process = null;
-					try {
-						process = Runtime.getRuntime().exec(command);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-
-					BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-					BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-					String title = stdInput.readLine();
-					String streamUrl = stdInput.readLine();
-
-					if (title == null || streamUrl == null) {
-						song = null;
+				if (cachedAudioPath == null) {
+					boolean usedCachedQuery = false;
+					if (youtubeId == null) {
+						youtubeId = getYoutubeVideo(query);
 					} else {
-						int duration = stringToSeconds(stdInput.readLine());
-						song = new Song(title, streamUrl, youtubeId, duration, query, requester, usedCachedQuery);
+						usedCachedQuery = true;
 					}
+					if (youtubeId == null) {
+						song = new Song(null, null, null, -1, query, requester, false);
+					} else {
+						String youtubeUrl = " http://www.youtube.com/watch?v=" + youtubeId;
+						String format = " -f bestaudio[ext!=webm] ";
+						String command = "\"" + YOUTUBEDL_PATH + "\"" + " -e -g --get-duration -x" + format
+								+ youtubeUrl;
+						Process process = null;
+						try {
+							process = Runtime.getRuntime().exec(command);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 
-					String error = null;
-					while ((error = stdError.readLine()) != null) {
-						if (error.contains("Unable to download webpage")) {
-							throw new UnknownHostException(error);
+						BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+						BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+						String title = stdInput.readLine();
+						String streamUrl = stdInput.readLine();
+
+						if (title == null || streamUrl == null) {
+							song = null;
 						} else {
-							throw new RuntimeException(error);
+							int duration = stringToSeconds(stdInput.readLine());
+							song = new Song(title, streamUrl, youtubeId, duration, query, requester, usedCachedQuery);
+						}
+
+						String error = null;
+						while ((error = stdError.readLine()) != null) {
+							if (error.contains("Unable to download webpage")) {
+								new UnknownHostException(error).printStackTrace();
+							} else if (error.contains("extraction")) {
+								String message = "youtube-dl is out of date. Try again shortly.";
+								new IOException(message).printStackTrace();
+							} else {
+								new IOException(error).printStackTrace();
+							}
 						}
 					}
+				} else {
+					song = new Song(songData[0], null, songData[1], Integer.parseInt(songData[2]), query, requester,
+							true);
 				}
-			} else {
-				song = new Song(songData[0], null, songData[1], Integer.parseInt(songData[2]), query, requester, true);
 			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		return song;
 	}
@@ -282,30 +291,35 @@ class Song {
 	 * @param query
 	 *            - the argument of a song request
 	 * @return the YouTube ID of the video best matching the query
+	 * @throws IOException
 	 */
 	private static String getYoutubeVideo(String query) throws IOException {
-		String videoId = getYoutubeIdFromUrl(query);
-		if (videoId == null) {
-			YouTube youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(),
-					new HttpRequestInitializer() {
-						public void initialize(HttpRequest request) throws IOException {
-						}
-					}).setApplicationName("sourceradio").build();
-			YouTube.Search.List search = youtube.search().list("id");
-			search.setKey(properties.get("youtube key"));
-			search.setQ(query);
-			search.setType("video");
-			search.setFields("items(id)");
-			search.setMaxResults(1L);
+		try {
+			String videoId = getYoutubeIdFromUrl(query);
+			if (videoId == null) {
+				YouTube youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(),
+						new HttpRequestInitializer() {
+							public void initialize(HttpRequest request) throws IOException {
+							}
+						}).setApplicationName("sourceradio").build();
+				YouTube.Search.List search = youtube.search().list("id");
+				search.setKey(properties.get("youtube key"));
+				search.setQ(query);
+				search.setType("video");
+				search.setFields("items(id)");
+				search.setMaxResults(1L);
 
-			SearchListResponse searchResponse = search.execute();
-			List<SearchResult> searchResultList = searchResponse.getItems();
+				SearchListResponse searchResponse = search.execute();
+				List<SearchResult> searchResultList = searchResponse.getItems();
 
-			if (searchResultList != null && searchResultList.size() > 0) {
-				videoId = searchResultList.get(0).getId().getVideoId();
+				if (searchResultList != null && searchResultList.size() > 0) {
+					videoId = searchResultList.get(0).getId().getVideoId();
+				}
 			}
+			return videoId;
+		} catch (IOException e) {
+			throw new IOException("Error: Failed to find YouTube video.", e);
 		}
-		return videoId;
 	}
 
 	private static String getYoutubeIdFromUrl(String text) {
