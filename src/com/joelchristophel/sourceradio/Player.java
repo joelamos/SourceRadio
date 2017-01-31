@@ -2,6 +2,8 @@ package com.joelchristophel.sourceradio;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class Player {
 
@@ -10,7 +12,7 @@ class Player {
 	private static List<Player> players = new ArrayList<Player>();
 
 	private Player(String steamId, String username) {
-		steamId3 = toSteamId3(steamId);
+		steamId3 = asSteamId3(steamId);
 		this.username = username == null ? null : username.trim();
 	}
 
@@ -36,7 +38,7 @@ class Player {
 	}
 
 	static Player getPlayerFromSteamId(String steamId) {
-		String steamId3 = toSteamId3(steamId);
+		String steamId3 = asSteamId3(steamId);
 		Player matchingPlayer = null;
 		for (Player player : players) {
 			if (player.getSteamId3() != null && player.getSteamId3().equals(steamId3)) {
@@ -52,7 +54,7 @@ class Player {
 	}
 
 	static boolean addPlayer(String steamId, String username) {
-		String steamId3 = toSteamId3(steamId);
+		String steamId3 = asSteamId3(steamId);
 		username = username.trim();
 		int playersBefore = players.size();
 		if (steamId3 == null) {
@@ -112,7 +114,7 @@ class Player {
 		}
 	}
 
-	private static String toSteamId3(String steamId) {
+	static String asSteamId3(String steamId) {
 		String steamId3 = steamId;
 		if (steamId != null) {
 			String[] chunks = steamId.split(":");
@@ -131,6 +133,29 @@ class Player {
 		return steamId3;
 	}
 
+	static String getSteamId3FromProfile(String profileId) throws Exception {
+		String steamId3 = null;
+		if (profileId != null) {
+			String html = FileUtilities.getHtml("https://steamrep.com/search?q=" + profileId);
+			String needle = "steam3ID:";
+			int needlePosition = html.indexOf(needle);
+			if (needlePosition != -1) {
+				steamId3 = html.substring(needlePosition + needle.length(), html.indexOf('|', needlePosition)).trim();
+			}
+		}
+		return steamId3;
+	}
+
+	static String getSteamProfileId(String profileUrl) {
+		String profileId = null;
+		Pattern pattern = Pattern.compile("^(?:http(?:s?):\\/\\/)?(?:www\\.)?steamcommunity\\.com\\/(?:profiles|id)\\/(.+)$");
+		Matcher matcher = pattern.matcher(profileUrl);
+		if (matcher.find()) {
+			profileId = matcher.group(1);
+		}
+		return profileId;
+	}
+	
 	String getSteamId3() {
 		return steamId3;
 	}

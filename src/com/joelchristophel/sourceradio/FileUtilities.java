@@ -4,6 +4,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -171,10 +174,38 @@ class FileUtilities {
 		return hasLine;
 	}
 
+	static void writeFile(String path, String text) throws IOException {
+		File file = new File(path);
+		file.delete();
+		Files.write(Paths.get(path), text.getBytes(), StandardOpenOption.CREATE);
+		FileUtilities.trimFile(path);
+	}
+	
+	static void writeFile(String path, String[] lines) throws IOException {
+		String text = "";
+		for (int i = 0; i < lines.length; i++) {
+			text += lines[i] + (i == lines.length - 1 ? "" : System.lineSeparator());
+		}
+		writeFile(path, text);
+	}
+	
 	static String normalizeDirectoryPath(String path) {
 		if (path != null && !path.endsWith(File.separator)) {
 			path += File.separator;
 		}
 		return path;
+	}
+
+	static String getHtml(String url) throws Exception {
+		StringBuilder result = new StringBuilder();
+		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+		conn.setRequestMethod("GET");
+		BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+		String line;
+		while ((line = reader.readLine()) != null) {
+			result.append(line);
+		}
+		reader.close();
+		return result.toString();
 	}
 }

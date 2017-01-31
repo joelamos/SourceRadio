@@ -166,15 +166,10 @@ class Properties {
 	Set<Player> getAdmins() {
 		Set<Player> admins = new HashSet<Player>();
 		try {
-			for (String steamId : FileUtilities.getLines(ADMINS_PATH, false)) {
-				if (steamId.matches("[0-9]+(\\s*//.*)?")) {
-					admins.add(Player.getPlayerFromSteamId(steamId.split("\\s*//")[0]));
-				}
-			}
+			admins = getPlayers(ADMINS_PATH);
 		} catch (IOException e) {
-			new IOException("Error: Failed to read the admins list at " + ADMINS_PATH + ".", e).printStackTrace();
+			new IOException("Error: Failed to read the admins list from " + ADMINS_PATH + ".", e).printStackTrace();
 		}
-		admins.add(getOwner());
 		return admins;
 	}
 
@@ -186,15 +181,44 @@ class Properties {
 	Set<Player> getBannedPlayers() {
 		Set<Player> bannedPlayers = new HashSet<Player>();
 		try {
-			for (String line : FileUtilities.getLines(BANNED_PLAYERS_PATH, false)) {
-				if (line.matches("[0-9]+(\\s*//.*)?")) {
-					bannedPlayers.add(Player.getPlayerFromSteamId(line.split("\\s*//")[0]));
-				}
-			}
+			bannedPlayers = getPlayers(BANNED_PLAYERS_PATH);
 		} catch (IOException e) {
-			new IOException("Error: Failed to read the banned players list from " + BANNED_PLAYERS_PATH + ".", e);
+			String message = "Error: Failed to read the banned players list from " + BANNED_PLAYERS_PATH + ".";
+			new IOException(message, e).printStackTrace();
 		}
 		return bannedPlayers;
+	}
+
+	private Set<Player> getPlayers(String path) throws IOException {
+		Set<Player> players = new HashSet<Player>();
+		boolean rewriteFile = false;
+		String[] lines = FileUtilities.getLines(path, false);
+		for (int i = 0; i < lines.length; i++) {
+			lines[i] = lines[i].replaceAll("http(?:s?)://", "").trim();
+			String steamId = lines[i].split("\\s*//")[0];
+			String profileId = Player.getSteamProfileId(steamId); // if line is a profile URL
+			try {
+				if (profileId != null) {
+					rewriteFile = true;
+					int commentPosition = lines[i].indexOf("//");
+					String comment = commentPosition == -1 ? steamId : lines[i].split("//")[1].trim();
+					if (lines[i].contains("profiles")) {
+						steamId = profileId;
+					} else {
+						steamId = Player.getSteamId3FromProfile(profileId);
+					}
+					lines[i] = steamId + " // " + comment;
+				}
+				players.add(Player.getPlayerFromSteamId(steamId));
+			} catch (Exception e) {
+				String message = "Error: Failed while converting Steam profile URL to SteamID.";
+				new Exception(message, e).printStackTrace();
+			}
+		}
+		if (rewriteFile) {
+			FileUtilities.writeFile(path, lines);
+		}
+		return players;
 	}
 
 	Set<String> getBlockedSongs() {
@@ -256,10 +280,7 @@ class Properties {
 				if (!foundProperty) {
 					fileText += property + DELIMITER + " " + value + System.lineSeparator();
 				}
-				File file = new File(PROPERTIES_PATH);
-				file.delete();
-				Files.write(Paths.get(PROPERTIES_PATH), fileText.getBytes(), StandardOpenOption.CREATE);
-				FileUtilities.trimFile(PROPERTIES_PATH);
+				FileUtilities.writeFile(PROPERTIES_PATH, fileText);
 			} catch (IOException e) {
 				String message = "Error: Failed to write \"" + property + "\" property to " + PROPERTIES_PATH + ".";
 				new IOException(message, e).printStackTrace();
@@ -400,10 +421,7 @@ class Properties {
 				fileText += propertyNames[i] + DELIMITER + " " + properties.get(propertyNames[i]) + seperator;
 			}
 			try {
-				File file = new File(PROPERTIES_PATH);
-				file.delete();
-				Files.write(Paths.get(PROPERTIES_PATH), fileText.getBytes(), StandardOpenOption.CREATE);
-				FileUtilities.trimFile(PROPERTIES_PATH);
+				FileUtilities.writeFile(PROPERTIES_PATH, fileText);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -434,8 +452,8 @@ class Properties {
 				for (String property : properties.keySet()) {
 					if (line.toLowerCase().startsWith(property + DELIMITER)) {
 						if (propertiesRead.contains(property)) {
-							throw new IOException("The property \"" + property
-									+ "\" is listed more than once in \"" + filename + "\".");
+							throw new IOException("The property \"" + property + "\" is listed more than once in \""
+									+ filename + "\".");
 						}
 						if (line.matches(".*//.*")) {
 							line = line.replaceAll("\\s*//.*", "");

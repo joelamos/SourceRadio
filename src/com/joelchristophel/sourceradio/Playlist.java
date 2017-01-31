@@ -1044,18 +1044,9 @@ public class Playlist implements Closeable {
 	}
 
 	static String getLatestVersion(String githubUser, String repository) throws Exception {
-		StringBuilder result = new StringBuilder();
-		URL url = new URL("https://github.com/" + githubUser + "/" + repository + "/releases/latest");
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		conn.setRequestMethod("GET");
-		BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-		String line;
-		while ((line = reader.readLine()) != null) {
-			result.append(line);
-		}
-		reader.close();
+		String url = "https://github.com/" + githubUser + "/" + repository + "/releases/latest";
+		String html = FileUtilities.getHtml(url);
 		String needle = repository + "/tree/";
-		String html = result.toString();
 		int needlePosition = html.indexOf(needle);
 		String version = html.substring(needlePosition + needle.length(), html.indexOf('"', needlePosition));
 		return version.charAt(0) == 'v' ? version.substring(1) : version;
