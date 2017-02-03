@@ -324,7 +324,7 @@ class Song {
 
 	private static String getYoutubeIdFromUrl(String text) {
 		Pattern pattern = Pattern
-				.compile("^(?:http(?:s?):\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([^?\\/]+).*$");
+				.compile("^(?:http(?:s?):\\/\\/)?(?:www\\.|m\\.)?(?:youtube\\.com\\/(?:watch\\?(?:.+&)?v=|v\\/|embed\\/ )|youtu\\.be\\/)([a-zA-Z0-9_-]{11,}).*$");
 		Matcher matcher = pattern.matcher(text);
 		if (matcher.find()) {
 			return matcher.group(1);
