@@ -80,7 +80,7 @@ This file contains SourceRadio's main parameters. Property-value pairs are separ
 * **share command vocalizations** - `true` if command vocalizations are to be sent through the owner's microphone to teammates; `false` otherwise
 * **steam path** - The path to Steam's home directory.
 * **steam locale** - The value must match the locale you have selected within Steam under Settings > Interface. Valid values: `en` (English), `bg` (Bulgarian), `cs` (Czech), `da` (Danish), `de` (German), `el` (Greek), `es` (Spanish), `fi` (Finnish), `fr` (French), `hu` (Hungarian), `it` (Italian), `ja` (Japanese), `ko` (Korean), `nl` (Dutch), `no` (Norwegian), `pl` (Polish), `pt` (Portuguese), `pt-br` (Portuguese-Brazil), `ro` (Romanian), `ru` (Russian), `sv` (Swedish), `th` (Thai), `tr` (Turkish), `uk` (Ukrainian), `zh-hans` (Simplified Chinese), `zh-hant` (Traditional Chinese).
-* **steamid3** - The Steam ID used by servers to identify you. This can be left empty unless you have multiple accounts and SourceRadio is choosing the wrong one. There are online tools you can use to help you find your steamID3. Given the steamID3 `[U:1:193286671]`, you would just use the value `193286671`.
+* **steamid3** - The Steam ID used by servers to identify you. This can be left empty unless you have multiple accounts and SourceRadio is choosing the wrong one.
 * **mysql path** - the path to any MySQL subdirectory containing the file `mysqld.exe`.
 * **mysql server** - The MySQL server address. Local servers use `localhost`.
 * **mysql user** - The MySQL username to connect to the server with. MySQL ships with the user `root`.
@@ -94,13 +94,15 @@ This file contains SourceRadio's main parameters. Property-value pairs are separ
 
 If you wish, you may use this file to grant administrative privileges to specified players. Admins are able to execute most of the available [ingame commands](#ingame-commands). This allows them to complete tasks that normal players can't, such as skipping songs and banning players.
 
-This file should contain a list of the IDs (steamID3) of each player you wish to make an admin. Each ID must be on its own line. There are online tools that allow you to convert a player's Steam profile URL to a steamID3 for this file. Alternatively, you can add admins using the ingame `!add-admin [username]` command, so long as the player is on the same server with you. As the owner, you do not have to place your ID in this file to grant yourself privileges.
+This file should contain the Steam ID (any format) or profile URL of each player you wish to make an admin, with each value on its own line. Alternatively, you can add admins using the ingame `!add-admin [username]` command, so long as the player is on the same server with you.
+
+**Note**: As the owner, you do not have to place your ID in this file to grant yourself privileges.
 
 ###banned players.txt
 
 If you wish, you may use this file to revoke the ability for certain players to request songs. 
 
-This file should contain a list of the IDs (steamID3) of each player you wish to ban. Each ID must be on its own line. There are online tools that allow you to convert a player’s Steam profile URL to a steamID3 for this file. Alternatively, you can ban players using the ingame `!ban [username]` command, so long as the player is on the same server with you.
+This file should contain the Steam ID (any format) or profile URL of each player you wish to ban, with each value on its own line. Alternatively, you can ban players using the ingame `!ban [username]` command, so long as the player is on the same server with you.
 
 ###blocked songs.txt
 
