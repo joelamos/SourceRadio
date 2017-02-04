@@ -170,6 +170,7 @@ class Properties {
 		} catch (IOException e) {
 			new IOException("Error: Failed to read the admins list from " + ADMINS_PATH + ".", e).printStackTrace();
 		}
+		admins.add(getOwner());
 		return admins;
 	}
 
