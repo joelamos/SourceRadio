@@ -6,7 +6,7 @@ SourceRadio plays music through the owner's ingame microphone, and songs may be 
 
 Your selection of music is practically infinite. That's because SourceRadio streams music directly from YouTube. When players request a song, SourceRadio takes the request and sends it to YouTube, which spits out the top result. SourceRadio stores the information gathered from each song request in a local database, using that information to avoid future lookups. SourceRadio also saves the most-requested songs locally to the owner's drive in order to stream songs more efficiently.
 
-##Supported games
+## Supported games
 
 * **Team Fortress 2**
 * **Counter-Strike: Global Offensive**
@@ -55,7 +55,7 @@ Below, an asterisk indicates that a command has the ability to write changes to 
 
 The various files containing properties and settings for configuring SourceRadio are located at `...\SourceRadio\properties`. Below, you will find explanations of each important file in this directory that you may want to tweak to fit your preferences. You may use `//` to demarcate comments in these files.
 
-###properties.txt
+### properties.txt
 
 This file contains SourceRadio's main parameters. Property-value pairs are separated by the delimiter ` -> `. See [this list](https://wiki.teamfortress.com/wiki/Scripting#List_of_key_names) for valid key names for binding. To restore this file's default values, run `restore defaults.bat`.
 
@@ -90,7 +90,7 @@ This file contains SourceRadio's main parameters. Property-value pairs are separ
 * **min requests to cache** - The minimum number of times a song must be requested before it is stored on the owner's computer.
 * **youtube key** - A key necessary for gaining access to the YouTube Data API. Instructions on obtaining a key can be found within the installer.
 
-###admins.txt
+### admins.txt
 
 If you wish, you may use this file to grant administrative privileges to specified players. Admins are able to execute most of the available [ingame commands](#ingame-commands). This allows them to complete tasks that normal players can't, such as skipping songs and banning players.
 
@@ -98,13 +98,13 @@ This file should contain the Steam ID (any format) or profile URL of each player
 
 **Note**: As the owner, you do not have to place your ID in this file to grant yourself privileges.
 
-###banned players.txt
+### banned players.txt
 
 If you wish, you may use this file to revoke the ability for certain players to request songs. 
 
 This file should contain the Steam ID (any format) or profile URL of each player you wish to ban, with each value on its own line. Alternatively, you can ban players using the ingame `!ban [username]` command, so long as the player is on the same server with you.
 
-###blocked songs.txt
+### blocked songs.txt
 
 If you wish, you may use this file to block certain songs from being played. 
 
